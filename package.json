@@ -1,0 +1,13 @@
+{
+  "name": "cinema-booking",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Website đặt vé xem phim - PHP + MySQL + TypeScript",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0"
+  }
+}

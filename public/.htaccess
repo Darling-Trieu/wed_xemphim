@@ -1,0 +1,9 @@
+RewriteEngine On
+
+# Cho phép truy cập trực tiếp file/thư mục tồn tại thật (css, js, uploads, api.php...)
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Mọi request còn lại đi qua front controller
+RewriteRule ^ index.php [L]
