@@ -1,5 +1,6 @@
 <h1>Quản lý đơn đặt vé</h1>
 
+<div class="table-responsive">
 <table class="data-table">
     <thead>
         <tr><th>Mã vé</th><th>Khách hàng</th><th>Phim</th><th>Rạp</th><th>Suất chiếu</th><th>Tổng tiền</th><th>Trạng thái</th><th></th></tr>
@@ -30,3 +31,4 @@
         <?php endif; ?>
     </tbody>
 </table>
+</div>

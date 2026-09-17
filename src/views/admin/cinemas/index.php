@@ -3,6 +3,7 @@
     <a class="btn" href="<?= BASE_URL ?>/admin/cinemas/create">+ Thêm rạp</a>
 </div>
 
+<div class="table-responsive">
 <table class="data-table">
     <thead>
         <tr><th>Tên rạp</th><th>Địa chỉ</th><th>Thành phố</th><th>SĐT</th><th>Trạng thái</th><th></th></tr>
@@ -29,3 +30,4 @@
         <?php endif; ?>
     </tbody>
 </table>
+</div>

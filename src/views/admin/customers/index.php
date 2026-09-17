@@ -1,5 +1,6 @@
 <h1>Quản lý khách hàng</h1>
 
+<div class="table-responsive">
 <table class="data-table">
     <thead><tr><th>Họ tên</th><th>Email</th><th>SĐT</th><th>Ngày đăng ký</th><th>Trạng thái</th><th></th></tr></thead>
     <tbody>
@@ -26,3 +27,4 @@
         <?php endif; ?>
     </tbody>
 </table>
+</div>

@@ -9,8 +9,9 @@
 </head>
 <body class="admin-body">
 <div class="admin-layout">
-    <aside class="admin-sidebar">
-        <a class="brand" href="<?= BASE_URL ?>/admin">🎬 <?= APP_NAME ?></a>
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+    <aside class="admin-sidebar" id="admin-sidebar">
+        <a class="brand" href="<?= BASE_URL ?>/admin">🎬 Cinema<span>Booking</span></a>
         <nav>
             <a href="<?= BASE_URL ?>/admin">Dashboard</a>
             <a href="<?= BASE_URL ?>/admin/movies">Phim</a>
@@ -27,7 +28,12 @@
     </aside>
     <div class="admin-main">
         <header class="admin-topbar">
-            <span><?= isset($pageTitle) ? htmlspecialchars($pageTitle) : 'Dashboard' ?></span>
+            <div class="admin-topbar-left">
+                <button type="button" class="sidebar-toggle" id="sidebar-toggle" aria-label="Mở menu quản trị">
+                    <span></span><span></span><span></span>
+                </button>
+                <span><?= isset($pageTitle) ? htmlspecialchars($pageTitle) : 'Dashboard' ?></span>
+            </div>
             <span class="admin-user">Xin chào, <?= htmlspecialchars(Auth::user()['full_name'] ?? '') ?></span>
         </header>
         <div class="admin-content">

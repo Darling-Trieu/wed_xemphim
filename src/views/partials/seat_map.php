@@ -15,18 +15,20 @@
     <div class="screen-bar">MÀN HÌNH</div>
 
     <div class="seat-legend">
-        <span><span class="legend-box" style="background:#fff;"></span> Thường</span>
-        <span><span class="legend-box" style="border-color:#f59e0b;"></span> VIP</span>
+        <span><span class="legend-box"></span> Thường</span>
+        <span><span class="legend-box" style="border-color:#f5b301;"></span> VIP</span>
         <span><span class="legend-box" style="border-color:#a855f7;"></span> Ghế đôi</span>
-        <span><span class="legend-box" style="background:#d1d5db;"></span> Đã đặt</span>
+        <span><span class="legend-box" style="background:#2a2a2e;"></span> Đã đặt</span>
         <span><span class="legend-box" style="background:#e50914;border-color:#e50914;"></span> Đang chọn</span>
     </div>
 
-    <div id="seat-map"
-         data-showtime-id="<?= (int) $showtime['id'] ?>"
-         data-interactive="<?= $interactive ? '1' : '0' ?>"
-         data-api-url="<?= BASE_URL ?>/api.php">
-        <p>Đang tải sơ đồ ghế...</p>
+    <div class="seat-scroll">
+        <div id="seat-map"
+             data-showtime-id="<?= (int) $showtime['id'] ?>"
+             data-interactive="<?= $interactive ? '1' : '0' ?>"
+             data-api-url="<?= BASE_URL ?>/api.php">
+            <p>Đang tải sơ đồ ghế...</p>
+        </div>
     </div>
 
     <?php if ($interactive): ?>

@@ -41,11 +41,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     responsive: true,
                     plugins: { legend: { display: false } },
                     scales: {
+                        x: {
+                            ticks: { color: '#9ca0a8' },
+                            grid: { color: 'rgba(255,255,255,0.06)' },
+                        },
                         y: {
                             beginAtZero: true,
                             ticks: {
+                                color: '#9ca0a8',
                                 callback: (value: number) => value.toLocaleString('vi-VN'),
                             },
+                            grid: { color: 'rgba(255,255,255,0.06)' },
                         },
                     },
                 },

@@ -3,6 +3,7 @@
     <a class="btn" href="<?= BASE_URL ?>/admin/movies/create">+ Thêm phim</a>
 </div>
 
+<div class="table-responsive">
 <table class="data-table">
     <thead>
         <tr>
@@ -38,3 +39,4 @@
         <?php endif; ?>
     </tbody>
 </table>
+</div>
