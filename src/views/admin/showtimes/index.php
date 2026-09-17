@@ -3,6 +3,7 @@
     <a class="btn" href="<?= BASE_URL ?>/admin/showtimes/create">+ Thêm suất chiếu</a>
 </div>
 
+<div class="table-responsive">
 <table class="data-table">
     <thead>
         <tr><th>Phim</th><th>Rạp / Phòng</th><th>Ngày</th><th>Giờ chiếu</th><th>Giá vé</th><th>Trạng thái</th><th></th></tr>
@@ -30,3 +31,4 @@
         <?php endif; ?>
     </tbody>
 </table>
+</div>

@@ -11,7 +11,8 @@
     </div>
 </form>
 
-<table class="data-table" style="max-width:480px;">
+<div class="table-responsive" style="max-width:480px;">
+<table class="data-table">
     <thead><tr><th>Tên thể loại</th><th></th></tr></thead>
     <tbody>
         <?php foreach ($genres as $genre): ?>
@@ -27,3 +28,4 @@
         <?php endforeach; ?>
     </tbody>
 </table>
+</div>

@@ -3,6 +3,7 @@
     <a class="btn" href="<?= BASE_URL ?>/admin/rooms/create">+ Thêm phòng chiếu</a>
 </div>
 
+<div class="table-responsive">
 <table class="data-table">
     <thead><tr><th>Rạp</th><th>Tên phòng</th><th>Trạng thái</th><th></th></tr></thead>
     <tbody>
@@ -25,3 +26,4 @@
         <?php endif; ?>
     </tbody>
 </table>
+</div>

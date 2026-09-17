@@ -1,5 +1,6 @@
 <h1 class="section-title">Lịch sử đặt vé</h1>
 
+<div class="table-responsive">
 <table class="data-table">
     <thead>
         <tr>
@@ -29,3 +30,4 @@
         <?php endif; ?>
     </tbody>
 </table>
+</div>
