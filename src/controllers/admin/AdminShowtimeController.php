@@ -38,7 +38,7 @@ class AdminShowtimeController extends Controller
             return;
         }
 
-        if (Showtime::overlapExists($data['room_id'], $data['show_date'], $data['start_time'], $data['end_time'])) {
+        if (Showtime::overlapExists($data['room_id'], $data['starts_at'], $data['ends_at'])) {
             $this->flash('error', 'Phòng chiếu đã có suất chiếu khác trùng khung giờ này.');
             $this->redirect('/admin/showtimes/create');
             return;
@@ -77,7 +77,7 @@ class AdminShowtimeController extends Controller
             return;
         }
 
-        if (Showtime::overlapExists($data['room_id'], $data['show_date'], $data['start_time'], $data['end_time'], (int) $id)) {
+        if (Showtime::overlapExists($data['room_id'], $data['starts_at'], $data['ends_at'], (int) $id)) {
             $this->flash('error', 'Phòng chiếu đã có suất chiếu khác trùng khung giờ này.');
             $this->redirect('/admin/showtimes/' . $id . '/edit');
             return;
@@ -112,7 +112,7 @@ class AdminShowtimeController extends Controller
         }
 
         $startTimestamp = strtotime("$showDate $startTime");
-        $endTimestamp = $startTimestamp + ((int) $movie['duration_minutes'] + 15) * 60;
+        $endTimestamp = $startTimestamp + ((int) $movie['duration_minutes']) * 60;
 
         $data = [
             'movie_id'   => $movieId,
@@ -121,6 +121,8 @@ class AdminShowtimeController extends Controller
             'start_time' => date('H:i:s', $startTimestamp),
             'end_time'   => date('H:i:s', $endTimestamp),
             'base_price' => $basePrice,
+            'starts_at'  => date('Y-m-d H:i:s', $startTimestamp),
+            'ends_at'    => date('Y-m-d H:i:s', $endTimestamp),
         ];
 
         return [$data, null];

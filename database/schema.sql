@@ -170,18 +170,26 @@ INSERT INTO seat_types (name, price_multiplier) VALUES
 ('Thường', 1.00), ('VIP', 1.50), ('Đôi', 2.00);
 
 INSERT INTO movies (title, description, duration_minutes, poster_path, trailer_url, age_rating, status, release_date) VALUES
-('Hành Trình Vô Định', 'Một cuộc phiêu lưu hành động nghẹt thở xuyên qua nhiều vùng đất nguy hiểm.', 128, NULL, NULL, 'T16', 'now_showing', '2026-08-01'),
-('Nụ Cười Mùa Hạ', 'Câu chuyện tình cảm nhẹ nhàng giữa hai người trẻ trong mùa hè định mệnh.', 105, NULL, NULL, 'T13', 'now_showing', '2026-07-15'),
-('Lời Nguyền Căn Nhà Cũ', 'Bộ phim kinh dị ám ảnh về một căn nhà bỏ hoang mang bí mật đen tối.', 98, NULL, NULL, 'T18', 'now_showing', '2026-08-20'),
-('Vũ Trụ Song Song', 'Hành trình viễn tưởng khám phá những chiều không gian chưa từng biết đến.', 132, NULL, NULL, 'T13', 'coming_soon', '2026-10-10'),
-('Chú Mèo Tinh Nghịch', 'Phim hoạt hình gia đình vui nhộn dành cho mọi lứa tuổi.', 90, NULL, NULL, 'P', 'coming_soon', '2026-10-25');
+('Street Fighter', 'Phiên bản điện ảnh người đóng của thương hiệu game đối kháng huyền thoại, nơi các võ sĩ hàng đầu thế giới đối đầu trong giải đấu sinh tử.', 115, NULL, NULL, 'T16', 'now_showing', '2026-10-16'),
+('Quỷ Ăn Tạng 4: Hổ Tinh', 'Phần mới của loạt phim kinh dị Thái Lan ăn khách, tiếp tục hành trình trừ tà đối đầu thế lực quỷ dữ.', 110, NULL, NULL, 'T18', 'now_showing', '2026-10-16'),
+('Án Mạng Xém Hoàn Hảo', 'Phim Việt pha trộn trinh thám và hài hước xoay quanh một vụ án mạng tưởng chừng hoàn hảo.', 105, NULL, NULL, 'T16', 'now_showing', '2026-10-09'),
+('Trái Tim Quái Thú', 'Brad Pitt vào vai một cựu binh phải sinh tồn giữa vùng hoang dã cùng chú chó của mình. Đạo diễn David Ayer.', 120, NULL, NULL, 'T16', 'now_showing', '2026-10-02'),
+('Shaun the Sheep: Quái Lạ Ghé Nhà', 'Chú cừu Shaun và những người bạn ở nông trại đón một vị khách kỳ lạ, mở ra chuỗi tình huống dở khóc dở cười.', 85, NULL, NULL, 'P', 'now_showing', '2026-10-16'),
+('Thần Sư Chung Quỳ: Linh Giới Đại Chiến', 'Phim hoạt hình giả tưởng về Chung Quỳ – vị thần bắt quỷ – trong trận đại chiến nơi linh giới.', 100, NULL, NULL, 'K', 'now_showing', '2026-10-02'),
+('Oán Linh Đòi Mạng', 'Phim kinh dị về oan hồn trở lại báo thù, ra rạp đón mùa Halloween.', 95, NULL, NULL, 'T18', 'now_showing', '2026-10-23'),
+('Clayface', 'Phim kinh dị thuộc vũ trụ DC kể về nguồn gốc của Clayface – kẻ có thể biến đổi hình dạng – một trong những phản diện của Batman.', 115, NULL, NULL, 'T18', 'coming_soon', '2026-10-30'),
+('Chị Chị Em Em 3', 'Phần tiếp theo của loạt phim tâm lý Việt về những mối quan hệ đầy toan tính giữa các người phụ nữ. Đạo diễn Nguyễn Hữu Hoàng.', 110, NULL, NULL, 'T18', 'coming_soon', '2026-10-30');
 
 INSERT INTO movie_genres (movie_id, genre_id) VALUES
-(1,1),(1,6),
-(2,2),
-(3,4),
-(4,6),
-(5,5),(5,3);
+(1,1),
+(2,4),
+(3,3),(3,7),
+(4,1),(4,7),
+(5,5),(5,3),
+(6,5),(6,6),
+(7,4),
+(8,4),(8,6),
+(9,7),(9,2);
 
 INSERT INTO cinemas (name, address, city, phone, status) VALUES
 ('CineStar Quận 1', '123 Nguyễn Huệ, Quận 1', 'TP. Hồ Chí Minh', '02838123456', 'active'),
@@ -208,8 +216,13 @@ CROSS JOIN (SELECT 1 AS n UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 UNION SEL
 
 -- Vài suất chiếu mẫu cho phim đang chiếu (điều chỉnh ngày theo nhu cầu demo)
 INSERT INTO showtimes (movie_id, room_id, show_date, start_time, end_time, base_price, status) VALUES
-(1, 1, CURDATE(), '10:00:00', '12:15:00', 85000, 'active'),
-(1, 1, CURDATE(), '19:00:00', '21:15:00', 95000, 'active'),
-(2, 2, CURDATE(), '14:00:00', '15:50:00', 80000, 'active'),
-(3, 3, CURDATE(), '20:00:00', '21:45:00', 90000, 'active'),
-(1, 1, DATE_ADD(CURDATE(), INTERVAL 1 DAY), '18:00:00', '20:15:00', 95000, 'active');
+(1, 1, CURDATE(), '10:00:00', '12:00:00', 85000, 'active'),
+(7, 1, CURDATE(), '14:00:00', '15:40:00', 80000, 'active'),
+(1, 1, CURDATE(), '19:00:00', '21:00:00', 95000, 'active'),
+(5, 2, CURDATE(), '09:30:00', '11:00:00', 70000, 'active'),
+(3, 2, CURDATE(), '14:00:00', '15:50:00', 80000, 'active'),
+(4, 2, CURDATE(), '19:30:00', '21:35:00', 95000, 'active'),
+(6, 3, CURDATE(), '15:00:00', '16:45:00', 75000, 'active'),
+(2, 3, CURDATE(), '20:00:00', '21:55:00', 90000, 'active'),
+(1, 1, DATE_ADD(CURDATE(), INTERVAL 1 DAY), '18:00:00', '20:00:00', 95000, 'active'),
+(2, 3, DATE_ADD(CURDATE(), INTERVAL 1 DAY), '21:00:00', '22:55:00', 90000, 'active');

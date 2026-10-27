@@ -18,7 +18,7 @@ ksort($byRow);
                         <select name="seat_type[<?= (int) $seat['id'] ?>]" title="<?= htmlspecialchars($rowLabel . $seat['seat_number']) ?>">
                             <?php foreach ($seatTypes as $type): ?>
                                 <option value="<?= (int) $type['id'] ?>" <?= (int) $type['id'] === (int) $seat['seat_type_id'] ? 'selected' : '' ?>>
-                                    <?= htmlspecialchars($rowLabel . $seat['seat_number']) ?>
+                                       <?= htmlspecialchars($rowLabel . $seat['seat_number']) ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>

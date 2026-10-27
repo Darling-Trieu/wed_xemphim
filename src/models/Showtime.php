@@ -63,12 +63,18 @@ class Showtime extends Model
         )->fetchAll();
     }
 
-    public static function overlapExists(int $roomId, string $date, string $start, string $end, ?int $excludeId = null): bool
+    /**
+     * $newStart/$newEnd là 'Y-m-d H:i:s'. Suất có end_time <= start_time được hiểu là
+     * kết thúc vào ngày hôm sau, nên phải xét cả suất của ngày trước đó.
+     */
+    public static function overlapExists(int $roomId, string $newStart, string $newEnd, ?int $excludeId = null): bool
     {
         $sql = 'SELECT COUNT(*) FROM showtimes
-                WHERE room_id = ? AND show_date = ? AND status = "active"
-                AND NOT (end_time <= ? OR start_time >= ?)';
-        $params = [$roomId, $date, $start, $end];
+                WHERE room_id = ? AND status = "active"
+                  AND show_date BETWEEN DATE_SUB(DATE(?), INTERVAL 1 DAY) AND DATE(?)
+                  AND TIMESTAMP(show_date, start_time) < ?
+                  AND TIMESTAMP(show_date, end_time) + INTERVAL IF(end_time <= start_time, 1, 0) DAY > ?';
+        $params = [$roomId, $newStart, $newEnd, $newEnd, $newStart];
 
         if ($excludeId) {
             $sql .= ' AND id != ?';

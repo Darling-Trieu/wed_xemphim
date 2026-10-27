@@ -32,7 +32,6 @@
         <label>Giờ bắt đầu</label>
         <input class="form-control" type="time" name="start_time" required
                value="<?= htmlspecialchars($showtime ? substr($showtime['start_time'], 0, 5) : '') ?>">
-        <p class="movie-meta">Giờ kết thúc được tự động tính = giờ bắt đầu + thời lượng phim + 15 phút dọn phòng.</p>
     </div>
     <div class="form-group">
         <label>Giá vé cơ bản (ghế thường)</label>
