@@ -170,15 +170,15 @@ INSERT INTO seat_types (name, price_multiplier) VALUES
 ('Thường', 1.00), ('VIP', 1.50), ('Đôi', 2.00);
 
 INSERT INTO movies (title, description, duration_minutes, poster_path, trailer_url, age_rating, status, release_date) VALUES
-('Street Fighter', 'Phiên bản điện ảnh người đóng của thương hiệu game đối kháng huyền thoại, nơi các võ sĩ hàng đầu thế giới đối đầu trong giải đấu sinh tử.', 115, NULL, NULL, 'T16', 'now_showing', '2026-10-16'),
-('Quỷ Ăn Tạng 4: Hổ Tinh', 'Phần mới của loạt phim kinh dị Thái Lan ăn khách, tiếp tục hành trình trừ tà đối đầu thế lực quỷ dữ.', 110, NULL, NULL, 'T18', 'now_showing', '2026-10-16'),
-('Án Mạng Xém Hoàn Hảo', 'Phim Việt pha trộn trinh thám và hài hước xoay quanh một vụ án mạng tưởng chừng hoàn hảo.', 105, NULL, NULL, 'T16', 'now_showing', '2026-10-09'),
-('Trái Tim Quái Thú', 'Brad Pitt vào vai một cựu binh phải sinh tồn giữa vùng hoang dã cùng chú chó của mình. Đạo diễn David Ayer.', 120, NULL, NULL, 'T16', 'now_showing', '2026-10-02'),
-('Shaun the Sheep: Quái Lạ Ghé Nhà', 'Chú cừu Shaun và những người bạn ở nông trại đón một vị khách kỳ lạ, mở ra chuỗi tình huống dở khóc dở cười.', 85, NULL, NULL, 'P', 'now_showing', '2026-10-16'),
-('Thần Sư Chung Quỳ: Linh Giới Đại Chiến', 'Phim hoạt hình giả tưởng về Chung Quỳ – vị thần bắt quỷ – trong trận đại chiến nơi linh giới.', 100, NULL, NULL, 'K', 'now_showing', '2026-10-02'),
-('Oán Linh Đòi Mạng', 'Phim kinh dị về oan hồn trở lại báo thù, ra rạp đón mùa Halloween.', 95, NULL, NULL, 'T18', 'now_showing', '2026-10-23'),
-('Clayface', 'Phim kinh dị thuộc vũ trụ DC kể về nguồn gốc của Clayface – kẻ có thể biến đổi hình dạng – một trong những phản diện của Batman.', 115, NULL, NULL, 'T18', 'coming_soon', '2026-10-30'),
-('Chị Chị Em Em 3', 'Phần tiếp theo của loạt phim tâm lý Việt về những mối quan hệ đầy toan tính giữa các người phụ nữ. Đạo diễn Nguyễn Hữu Hoàng.', 110, NULL, NULL, 'T18', 'coming_soon', '2026-10-30');
+('Street Fighter', 'Phiên bản điện ảnh người đóng của thương hiệu game đối kháng huyền thoại, nơi các võ sĩ hàng đầu thế giới đối đầu trong giải đấu sinh tử.', 119, 'street-fighter.jpg', NULL, 'T16', 'now_showing', '2026-10-16'),
+('Quỷ Ăn Tạng 4: Hổ Tinh', 'Phần mới của loạt phim kinh dị Thái Lan ăn khách, tiếp tục hành trình trừ tà đối đầu thế lực quỷ dữ.', 110, 'quy-an-tang-4-ho-tinh.jpg', NULL, 'T18', 'now_showing', '2026-10-16'),
+('Án Mạng Xém Hoàn Hảo', 'Phim Việt pha trộn trinh thám và hài hước xoay quanh một vụ án mạng tưởng chừng hoàn hảo.', 105, 'an-mang-xem-hoan-hao.jpg', NULL, 'T16', 'now_showing', '2026-10-09'),
+('Trái Tim Quái Thú', 'Brad Pitt vào vai một cựu binh phải sinh tồn giữa vùng hoang dã cùng chú chó của mình. Đạo diễn David Ayer.', 120, 'trai-tim-quai-thu.jpg', NULL, 'T16', 'now_showing', '2026-10-02'),
+('Shaun the Sheep: Quái Lạ Ghé Nhà', 'Chú cừu Shaun và những người bạn ở nông trại đón một vị khách kỳ lạ, mở ra chuỗi tình huống dở khóc dở cười.', 85, 'shaun-the-sheep-quai-la-ghe-nha.jpg', NULL, 'P', 'now_showing', '2026-10-16'),
+('Thần Sư Chung Quỳ: Linh Giới Đại Chiến', 'Phim hoạt hình giả tưởng về Chung Quỳ – vị thần bắt quỷ – trong trận đại chiến nơi linh giới.', 100, 'than-su-chung-quy.jpg', NULL, 'K', 'now_showing', '2026-10-02'),
+('Oán Linh Đòi Mạng', 'Phim kinh dị Indonesia: gia đình Tomy chuyển đến khu nhà mới Laddaland và bị những thế lực ma quái đeo bám. Với Titi Kamal, Andri Mashadi.', 99, 'oan-linh-doi-mang.jpg', NULL, 'T18', 'now_showing', '2026-10-23'),
+('Clayface', 'Phim kinh dị thuộc vũ trụ DC kể về nguồn gốc của Clayface – kẻ có thể biến đổi hình dạng – một trong những phản diện của Batman.', 115, 'clayface.jpg', NULL, 'T18', 'coming_soon', '2026-10-30'),
+('Chị Chị Em Em 3', 'Phần tiếp theo của loạt phim tâm lý Việt về những mối quan hệ đầy toan tính giữa các người phụ nữ. Đạo diễn Nguyễn Hữu Hoàng.', 110, 'chi-chi-em-em-3.jpg', NULL, 'T18', 'coming_soon', '2026-10-30');
 
 INSERT INTO movie_genres (movie_id, genre_id) VALUES
 (1,1),
@@ -216,13 +216,13 @@ CROSS JOIN (SELECT 1 AS n UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 UNION SEL
 
 -- Vài suất chiếu mẫu cho phim đang chiếu (điều chỉnh ngày theo nhu cầu demo)
 INSERT INTO showtimes (movie_id, room_id, show_date, start_time, end_time, base_price, status) VALUES
-(1, 1, CURDATE(), '10:00:00', '12:00:00', 85000, 'active'),
-(7, 1, CURDATE(), '14:00:00', '15:40:00', 80000, 'active'),
-(1, 1, CURDATE(), '19:00:00', '21:00:00', 95000, 'active'),
+(1, 1, CURDATE(), '10:00:00', '11:59:00', 85000, 'active'),
+(7, 1, CURDATE(), '14:00:00', '15:39:00', 80000, 'active'),
+(1, 1, CURDATE(), '19:00:00', '20:59:00', 95000, 'active'),
 (5, 2, CURDATE(), '09:30:00', '11:00:00', 70000, 'active'),
 (3, 2, CURDATE(), '14:00:00', '15:50:00', 80000, 'active'),
 (4, 2, CURDATE(), '19:30:00', '21:35:00', 95000, 'active'),
 (6, 3, CURDATE(), '15:00:00', '16:45:00', 75000, 'active'),
 (2, 3, CURDATE(), '20:00:00', '21:55:00', 90000, 'active'),
-(1, 1, DATE_ADD(CURDATE(), INTERVAL 1 DAY), '18:00:00', '20:00:00', 95000, 'active'),
+(1, 1, DATE_ADD(CURDATE(), INTERVAL 1 DAY), '18:00:00', '19:59:00', 95000, 'active'),
 (2, 3, DATE_ADD(CURDATE(), INTERVAL 1 DAY), '21:00:00', '22:55:00', 90000, 'active');

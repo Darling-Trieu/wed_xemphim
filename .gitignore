@@ -1,3 +1,13 @@
 node_modules/
 public/uploads/movies/*
 !public/uploads/movies/.gitkeep
+# Poster của dữ liệu mẫu trong database/schema.sql
+!public/uploads/movies/street-fighter.jpg
+!public/uploads/movies/quy-an-tang-4-ho-tinh.jpg
+!public/uploads/movies/an-mang-xem-hoan-hao.jpg
+!public/uploads/movies/trai-tim-quai-thu.jpg
+!public/uploads/movies/shaun-the-sheep-quai-la-ghe-nha.jpg
+!public/uploads/movies/than-su-chung-quy.jpg
+!public/uploads/movies/oan-linh-doi-mang.jpg
+!public/uploads/movies/clayface.jpg
+!public/uploads/movies/chi-chi-em-em-3.jpg
