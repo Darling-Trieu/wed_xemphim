@@ -5,7 +5,7 @@ class Seat extends Model
     public static function allByRoom(int $roomId): array
     {
         $stmt = self::db()->prepare(
-            'SELECT s.*, st.name AS seat_type_name, st.price_multiplier
+            'SELECT s.*, st.name AS seat_type_name, st.surcharge
              FROM seats s
              INNER JOIN seat_types st ON st.id = s.seat_type_id
              WHERE s.room_id = ?
@@ -37,10 +37,6 @@ class Seat extends Model
         self::db()->prepare('UPDATE seats SET seat_type_id = ? WHERE id = ?')->execute([$seatTypeId, $id]);
     }
 
-    public static function deleteAllByRoom(int $roomId): void
-    {
-        self::db()->prepare('DELETE FROM seats WHERE room_id = ?')->execute([$roomId]);
-    }
 
     /**
      * Sinh sơ đồ ghế dạng lưới: $rows số hàng (A, B, C...), $cols ghế mỗi hàng,

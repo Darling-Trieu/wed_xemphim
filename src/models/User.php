@@ -10,6 +10,14 @@ class User extends Model
         return $row ?: null;
     }
 
+    public static function findByPhone(string $phone): ?array
+    {
+        $stmt = self::db()->prepare('SELECT * FROM users WHERE phone = ? LIMIT 1');
+        $stmt->execute([$phone]);
+        $row = $stmt->fetch();
+        return $row ?: null;
+    }
+
     public static function find(int $id): ?array
     {
         $stmt = self::db()->prepare('SELECT * FROM users WHERE id = ? LIMIT 1');
@@ -34,18 +42,35 @@ class User extends Model
         $stmt->execute([$fullName, $phone, $id]);
     }
 
-    public static function allCustomers(): array
+    /** Đăng nhập bằng email hoặc số điện thoại (UC05). */
+    public static function findByLogin(string $login): ?array
     {
-        return self::db()->query(
-            "SELECT * FROM users WHERE role = 'customer' ORDER BY created_at DESC"
-        )->fetchAll();
+        return str_contains($login, '@')
+            ? self::findByEmail(strtolower($login))
+            : self::findByPhone($login);
     }
 
-    public static function toggleStatus(int $id): void
+    /** Danh sách tài khoản kèm số đơn, tìm theo email / SĐT (UC14). */
+    public static function search(string $keyword = ''): array
     {
-        self::db()->prepare(
-            "UPDATE users SET status = IF(status = 'active', 'locked', 'active') WHERE id = ?"
-        )->execute([$id]);
+        $sql = 'SELECT u.*, (SELECT COUNT(*) FROM bookings b WHERE b.user_id = u.id) AS booking_count
+                FROM users u';
+        $params = [];
+        if ($keyword !== '') {
+            $like = '%' . addcslashes($keyword, '%_\\') . '%';
+            $sql .= ' WHERE u.email LIKE ? OR u.phone LIKE ?';
+            $params = [$like, $like];
+        }
+        $sql .= ' ORDER BY u.role, u.created_at DESC';
+
+        $stmt = self::db()->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll();
+    }
+
+    public static function setStatus(int $id, string $status): void
+    {
+        self::db()->prepare('UPDATE users SET status = ? WHERE id = ?')->execute([$status, $id]);
     }
 
     public static function countCustomers(): int

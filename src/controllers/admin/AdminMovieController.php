@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/../../models/Movie.php';
 require_once __DIR__ . '/../../models/Genre.php';
+require_once __DIR__ . '/../../models/AuditLog.php';
 
 class AdminMovieController extends Controller
 {
@@ -34,11 +35,17 @@ class AdminMovieController extends Controller
         Csrf::verifyRequest();
 
         $data = $this->collectInput();
+        if ($error = $this->validateTrailer($data['trailer_url'])) {
+            $this->flash('error', $error);
+            $this->redirect('/admin/movies/create');
+            return;
+        }
         $posterPath = $this->handleUpload();
         $data['poster_path'] = $posterPath;
 
         $movieId = Movie::create($data);
         Genre::syncForMovie($movieId, $_POST['genre_ids'] ?? []);
+        AuditLog::write('create', 'movie', $movieId, null, $data);
 
         $this->flash('success', 'Đã thêm phim mới.');
         $this->redirect('/admin/movies');
@@ -68,7 +75,18 @@ class AdminMovieController extends Controller
         Auth::requireAdmin();
         Csrf::verifyRequest();
 
+        $before = Movie::find((int) $id);
+        if (!$before) {
+            $this->notFound();
+            return;
+        }
+
         $data = $this->collectInput();
+        if ($error = $this->validateTrailer($data['trailer_url'])) {
+            $this->flash('error', $error);
+            $this->redirect('/admin/movies/' . (int) $id . '/edit');
+            return;
+        }
         $posterPath = $this->handleUpload();
         if ($posterPath) {
             $data['poster_path'] = $posterPath;
@@ -76,18 +94,50 @@ class AdminMovieController extends Controller
 
         Movie::update((int) $id, $data);
         Genre::syncForMovie((int) $id, $_POST['genre_ids'] ?? []);
+        AuditLog::write('update', 'movie', $id, $before, Movie::find((int) $id));
 
         $this->flash('success', 'Đã cập nhật phim.');
         $this->redirect('/admin/movies');
     }
 
+    /**
+     * BR09: phim đã có suất chiếu (và có thể đã có vé) không xóa cứng, chỉ chuyển Ngừng chiếu.
+     * Phim chưa từng được xếp suất thì xóa được.
+     */
     public function delete(string $id): void
     {
         Auth::requireAdmin();
         Csrf::verifyRequest();
-        Movie::delete((int) $id);
-        $this->flash('success', 'Đã xóa phim.');
+
+        $movie = Movie::find((int) $id);
+        if (!$movie) {
+            $this->notFound();
+            return;
+        }
+
+        if (Movie::hasShowtimes((int) $id)) {
+            Movie::setStatus((int) $id, 'ended');
+            AuditLog::write('deactivate', 'movie', $id, ['status' => $movie['status']], ['status' => 'ended']);
+            $this->flash('success', 'Phim đã có suất chiếu nên không xóa, đã chuyển sang Ngừng chiếu.');
+        } else {
+            Movie::delete((int) $id);
+            AuditLog::write('delete', 'movie', $id, $movie, null);
+            $this->flash('success', 'Đã xóa phim.');
+        }
         $this->redirect('/admin/movies');
+    }
+
+    /** Chỉ nhận link http/https (chặn "javascript:..." bị in vào href -> XSS). */
+    private function validateTrailer(?string $url): ?string
+    {
+        if ($url === null) {
+            return null;
+        }
+        $scheme = strtolower((string) parse_url($url, PHP_URL_SCHEME));
+        if (!filter_var($url, FILTER_VALIDATE_URL) || !in_array($scheme, ['http', 'https'], true) || strlen($url) > 255) {
+            return 'Link trailer phải là URL http(s) hợp lệ.';
+        }
+        return null;
     }
 
     private function collectInput(): array

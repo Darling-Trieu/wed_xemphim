@@ -64,6 +64,27 @@ class Movie extends Model
         self::db()->prepare($sql)->execute($params);
     }
 
+    /** Phim đặt lịch chiếu được (UC12): Đang chiếu / Sắp chiếu. */
+    public static function schedulable(): array
+    {
+        return self::db()->query(
+            "SELECT * FROM movies WHERE status IN ('now_showing', 'coming_soon') ORDER BY title"
+        )->fetchAll();
+    }
+
+    public static function hasShowtimes(int $id): bool
+    {
+        $stmt = self::db()->prepare('SELECT EXISTS(SELECT 1 FROM showtimes WHERE movie_id = ?)');
+        $stmt->execute([$id]);
+        return (bool) $stmt->fetchColumn();
+    }
+
+    public static function setStatus(int $id, string $status): void
+    {
+        self::db()->prepare('UPDATE movies SET status = ? WHERE id = ?')->execute([$status, $id]);
+    }
+
+    /** Chỉ dùng cho phim chưa từng có suất chiếu (BR09). */
     public static function delete(int $id): void
     {
         self::db()->prepare('DELETE FROM movies WHERE id = ?')->execute([$id]);

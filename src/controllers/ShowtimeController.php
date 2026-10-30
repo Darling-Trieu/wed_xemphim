@@ -3,6 +3,7 @@
 require_once __DIR__ . '/../models/Showtime.php';
 require_once __DIR__ . '/../models/Movie.php';
 require_once __DIR__ . '/../models/Cinema.php';
+require_once __DIR__ . '/../models/SeatType.php';
 
 class ShowtimeController extends Controller
 {
@@ -25,7 +26,10 @@ class ShowtimeController extends Controller
         ]);
     }
 
-    /** Xem sơ đồ ghế (read-only cho khách chưa đăng nhập). */
+    /**
+     * Sơ đồ ghế (UC03). Khách chưa đăng nhập cũng chọn được ghế (lưu ở trình duyệt);
+     * suất đã hủy / đóng bán thì chỉ xem.
+     */
     public function seats(string $id): void
     {
         $showtime = Showtime::find((int) $id);
@@ -35,9 +39,10 @@ class ShowtimeController extends Controller
         }
 
         $this->view('showtimes/seats', [
-            'pageTitle' => 'Sơ đồ ghế - ' . $showtime['movie_title'],
-            'showtime'  => $showtime,
-            'interactive' => false,
+            'pageTitle'   => 'Sơ đồ ghế - ' . $showtime['movie_title'],
+            'showtime'    => $showtime,
+            'seatTypes'   => SeatType::all(),
+            'saleClosed'  => Showtime::isSaleClosed($showtime),
             'pageScripts' => ['seat-map'],
         ]);
     }

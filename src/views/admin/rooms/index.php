@@ -14,7 +14,7 @@
                 <td><?= $room['status'] === 'active' ? 'Hoạt động' : 'Ngừng hoạt động' ?></td>
                 <td class="actions-cell">
                     <a class="btn btn-small btn-secondary" href="<?= BASE_URL ?>/admin/rooms/<?= (int) $room['id'] ?>/seats">Sơ đồ ghế</a>
-                    <form method="post" action="<?= BASE_URL ?>/admin/rooms/<?= (int) $room['id'] ?>/delete" onsubmit="return confirm('Xóa phòng chiếu này? Toàn bộ ghế sẽ bị xóa.');">
+                    <form method="post" action="<?= BASE_URL ?>/admin/rooms/<?= (int) $room['id'] ?>/delete" onsubmit="return confirm('Xóa phòng chiếu này? Phòng đã có suất chiếu sẽ chỉ chuyển sang Ngừng hoạt động.');">
                         <?= Csrf::field() ?>
                         <button type="submit" class="btn btn-small btn-danger">Xóa</button>
                     </form>

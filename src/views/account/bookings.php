@@ -4,11 +4,11 @@
 <table class="data-table">
     <thead>
         <tr>
-            <th>Mã vé</th>
+            <th>Mã đơn</th>
             <th>Phim</th>
             <th>Rạp</th>
             <th>Suất chiếu</th>
-            <th>Tổng tiền</th>
+            <th class="num">Tổng tiền</th>
             <th>Trạng thái</th>
             <th></th>
         </tr>
@@ -20,8 +20,13 @@
                 <td><?= htmlspecialchars($b['movie_title']) ?></td>
                 <td><?= htmlspecialchars($b['cinema_name']) ?></td>
                 <td><?= htmlspecialchars(date('d/m/Y', strtotime($b['show_date']))) ?> <?= htmlspecialchars(substr($b['start_time'], 0, 5)) ?></td>
-                <td><?= number_format($b['total_amount'], 0, ',', '.') ?>đ</td>
-                <td><?= $b['status'] === 'paid' ? 'Đã thanh toán' : 'Đã hủy' ?></td>
+                <td class="num"><?= number_format($b['total_amount'], 0, ',', '.') ?>đ</td>
+                <td>
+                    <?= Booking::statusLabel($b) ?>
+                    <?php if ($b['refund_amount'] !== null): ?>
+                        <br><span class="movie-meta">Hoàn <?= number_format($b['refund_amount'], 0, ',', '.') ?>đ</span>
+                    <?php endif; ?>
+                </td>
                 <td><a href="<?= BASE_URL ?>/account/bookings/<?= htmlspecialchars($b['booking_code']) ?>">Xem</a></td>
             </tr>
         <?php endforeach; ?>

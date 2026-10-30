@@ -26,7 +26,10 @@
                 <?php if (Auth::check()): ?>
                     <a href="<?= BASE_URL ?>/account/bookings">Vé của tôi</a>
                     <a href="<?= BASE_URL ?>/account">Xin chào, <?= htmlspecialchars(Auth::user()['full_name']) ?></a>
-                    <a href="<?= BASE_URL ?>/logout">Đăng xuất</a>
+                    <form class="logout-form" method="post" action="<?= BASE_URL ?>/logout">
+                        <?= Csrf::field() ?>
+                        <button type="submit" class="link-button">Đăng xuất</button>
+                    </form>
                 <?php else: ?>
                     <a href="<?= BASE_URL ?>/login">Đăng nhập</a>
                     <a href="<?= BASE_URL ?>/register" class="btn-outline">Đăng ký</a>

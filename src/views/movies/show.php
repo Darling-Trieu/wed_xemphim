@@ -21,7 +21,8 @@
         </dl>
         <p><?= nl2br(htmlspecialchars($movie['description'] ?? '')) ?></p>
 
-        <?php if ($movie['trailer_url']): ?>
+        <?php // Chỉ in link http(s): dữ liệu cũ có thể chứa "javascript:" ?>
+        <?php if ($movie['trailer_url'] && preg_match('#^https?://#i', $movie['trailer_url'])): ?>
             <p><a class="btn btn-secondary" href="<?= htmlspecialchars($movie['trailer_url']) ?>" target="_blank" rel="noopener">Xem trailer</a></p>
         <?php endif; ?>
 

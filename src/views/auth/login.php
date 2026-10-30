@@ -14,19 +14,22 @@
         <?php if (!empty($errors)): ?>
             <div class="alert alert-error"><?= implode('<br>', array_map('htmlspecialchars', $errors)) ?></div>
         <?php endif; ?>
-        <?php if (!empty($_SESSION['flash']['success'])): ?>
-            <div class="alert alert-success"><?= htmlspecialchars($_SESSION['flash']['success']) ?></div>
-            <?php unset($_SESSION['flash']['success']); ?>
-        <?php endif; ?>
+        <?php foreach (['error' => 'alert-error', 'success' => 'alert-success'] as $key => $class): ?>
+            <?php if (!empty($_SESSION['flash'][$key])): ?>
+                <div class="alert <?= $class ?>"><?= htmlspecialchars($_SESSION['flash'][$key]) ?></div>
+                <?php unset($_SESSION['flash'][$key]); ?>
+            <?php endif; ?>
+        <?php endforeach; ?>
 
         <?= Csrf::field() ?>
         <div class="form-group">
-            <label>Email</label>
-            <input class="form-control" type="email" name="email" value="<?= htmlspecialchars($old['email'] ?? '') ?>" required>
+            <label for="login">Email hoặc số điện thoại</label>
+            <input class="form-control" type="text" id="login" name="login" autocomplete="username"
+                   value="<?= htmlspecialchars($old['login'] ?? '') ?>">
         </div>
         <div class="form-group">
-            <label>Mật khẩu</label>
-            <input class="form-control" type="password" name="password" required>
+            <label for="password">Mật khẩu</label>
+            <input class="form-control" type="password" id="password" name="password" autocomplete="current-password">
         </div>
         <button type="submit" class="btn" style="width:100%;">Đăng nhập</button>
         <p class="form-footer">Chưa có tài khoản? <a href="<?= BASE_URL ?>/register">Đăng ký ngay</a></p>

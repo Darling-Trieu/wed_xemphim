@@ -13,6 +13,7 @@ $router->get('/showtimes', 'ShowtimeController@search');
 $router->get('/showtimes/{id}/seats', 'ShowtimeController@seats');
 
 $router->get('/booking/{showtimeId}', 'BookingController@create');
+$router->post('/booking/{showtimeId}/confirm', 'BookingController@confirm');
 $router->post('/booking/{showtimeId}', 'BookingController@store');
 $router->get('/booking/success/{code}', 'BookingController@success');
 
@@ -20,7 +21,7 @@ $router->get('/register', 'AuthController@registerForm');
 $router->post('/register', 'AuthController@register');
 $router->get('/login', 'AuthController@loginForm');
 $router->post('/login', 'AuthController@login');
-$router->get('/logout', 'AuthController@logout');
+$router->post('/logout', 'AuthController@logout');
 
 $router->get('/account', 'AccountController@profile');
 $router->post('/account', 'AccountController@update');
@@ -60,7 +61,7 @@ $router->get('/admin/showtimes/create', 'admin/AdminShowtimeController@createFor
 $router->post('/admin/showtimes', 'admin/AdminShowtimeController@store');
 $router->get('/admin/showtimes/{id}/edit', 'admin/AdminShowtimeController@editForm');
 $router->post('/admin/showtimes/{id}', 'admin/AdminShowtimeController@update');
-$router->post('/admin/showtimes/{id}/delete', 'admin/AdminShowtimeController@delete');
+$router->post('/admin/showtimes/{id}/cancel', 'admin/AdminShowtimeController@cancel');
 
 $router->get('/admin/bookings', 'admin/AdminTicketController@index');
 $router->get('/admin/bookings/{code}', 'admin/AdminTicketController@show');
@@ -68,3 +69,5 @@ $router->post('/admin/bookings/{code}/cancel', 'admin/AdminTicketController@canc
 
 $router->get('/admin/customers', 'admin/AdminCustomerController@index');
 $router->post('/admin/customers/{id}/toggle', 'admin/AdminCustomerController@toggleStatus');
+
+$router->get('/admin/logs', 'admin/AdminLogController@index');

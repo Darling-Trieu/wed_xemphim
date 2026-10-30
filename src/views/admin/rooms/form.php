@@ -16,11 +16,11 @@
     </div>
     <div class="form-group">
         <label>Số hàng ghế (A, B, C...)</label>
-        <input class="form-control" type="number" name="rows" min="1" max="26" value="5" required>
+        <input class="form-control" type="number" name="rows" min="1" max="20" value="5" required>
     </div>
     <div class="form-group">
         <label>Số ghế mỗi hàng</label>
-        <input class="form-control" type="number" name="cols" min="1" max="30" value="8" required>
+        <input class="form-control" type="number" name="cols" min="1" max="20" value="8" required>
     </div>
     <div class="form-group">
         <label>Loại ghế mặc định</label>
