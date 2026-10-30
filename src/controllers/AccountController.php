@@ -25,8 +25,14 @@ class AccountController extends Controller
         $fullName = (string) $this->input('full_name');
         $phone = $this->input('phone');
 
-        if ($fullName === '') {
-            $this->flash('error', 'Họ tên không được để trống.');
+        if ($fullName === '' || mb_strlen($fullName) > 100) {
+            $this->flash('error', 'Họ tên không được để trống và tối đa 100 ký tự.');
+            $this->redirect('/account');
+            return;
+        }
+        $owner = $phone ? User::findByPhone($phone) : null;
+        if ($owner && (int) $owner['id'] !== Auth::id()) {
+            $this->flash('error', 'Số điện thoại đã được sử dụng.');
             $this->redirect('/account');
             return;
         }

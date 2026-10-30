@@ -2,27 +2,20 @@
 
 class BookingSeat extends Model
 {
-    /** Danh sách seat_id đã được đặt (còn hiệu lực) cho 1 suất chiếu. */
+    /** Danh sách seat_id đã bán cho 1 suất chiếu (bảng ghế-theo-suất). */
     public static function bookedSeatIds(int $showtimeId): array
     {
-        $stmt = self::db()->prepare(
-            'SELECT bs.seat_id FROM booking_seats bs
-             INNER JOIN bookings b ON b.id = bs.booking_id
-             WHERE bs.showtime_id = ? AND b.status = "paid"'
-        );
+        $stmt = self::db()->prepare('SELECT seat_id FROM showtime_seats WHERE showtime_id = ?');
         $stmt->execute([$showtimeId]);
         return array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
     }
 
+    /** Vé của 1 đơn, đọc từ snapshot (nhãn ghế, loại ghế, giá lúc đặt) - BR06. */
     public static function allByBooking(int $bookingId): array
     {
         $stmt = self::db()->prepare(
-            'SELECT bs.*, s.seat_row, s.seat_number, st.name AS seat_type_name
-             FROM booking_seats bs
-             INNER JOIN seats s ON s.id = bs.seat_id
-             INNER JOIN seat_types st ON st.id = s.seat_type_id
-             WHERE bs.booking_id = ?
-             ORDER BY s.seat_row, s.seat_number'
+            'SELECT * FROM booking_seats WHERE booking_id = ?
+             ORDER BY LEFT(seat_label, 1), CAST(SUBSTRING(seat_label, 2) AS UNSIGNED)'
         );
         $stmt->execute([$bookingId]);
         return $stmt->fetchAll();

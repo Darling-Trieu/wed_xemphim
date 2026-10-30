@@ -27,9 +27,9 @@
                 <td><?= $movie['release_date'] ? htmlspecialchars(date('d/m/Y', strtotime($movie['release_date']))) : '-' ?></td>
                 <td class="actions-cell">
                     <a class="btn btn-small btn-secondary" href="<?= BASE_URL ?>/admin/movies/<?= (int) $movie['id'] ?>/edit">Sửa</a>
-                    <form method="post" action="<?= BASE_URL ?>/admin/movies/<?= (int) $movie['id'] ?>/delete" onsubmit="return confirm('Xóa phim này?');">
+                    <form method="post" action="<?= BASE_URL ?>/admin/movies/<?= (int) $movie['id'] ?>/delete" onsubmit="return confirm('Xóa phim này? Phim đã có suất chiếu sẽ chỉ chuyển sang Ngừng chiếu.');">
                         <?= Csrf::field() ?>
-                        <button type="submit" class="btn btn-small btn-danger">Xóa</button>
+                        <button type="submit" class="btn btn-small btn-danger">Xóa / Ngừng chiếu</button>
                     </form>
                 </td>
             </tr>

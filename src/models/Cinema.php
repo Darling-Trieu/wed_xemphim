@@ -37,6 +37,19 @@ class Cinema extends Model
         $stmt->execute([$data['name'], $data['address'], $data['city'], $data['phone'], $data['status'], $id]);
     }
 
+    public static function hasRooms(int $id): bool
+    {
+        $stmt = self::db()->prepare('SELECT EXISTS(SELECT 1 FROM rooms WHERE cinema_id = ?)');
+        $stmt->execute([$id]);
+        return (bool) $stmt->fetchColumn();
+    }
+
+    public static function setStatus(int $id, string $status): void
+    {
+        self::db()->prepare('UPDATE cinemas SET status = ? WHERE id = ?')->execute([$status, $id]);
+    }
+
+    /** Chỉ dùng cho rạp chưa có phòng chiếu nào (BR09). */
     public static function delete(int $id): void
     {
         self::db()->prepare('DELETE FROM cinemas WHERE id = ?')->execute([$id]);

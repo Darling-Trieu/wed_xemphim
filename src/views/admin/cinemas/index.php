@@ -18,7 +18,7 @@
                 <td><?= $cinema['status'] === 'active' ? 'Hoạt động' : 'Ngừng hoạt động' ?></td>
                 <td class="actions-cell">
                     <a class="btn btn-small btn-secondary" href="<?= BASE_URL ?>/admin/cinemas/<?= (int) $cinema['id'] ?>/edit">Sửa</a>
-                    <form method="post" action="<?= BASE_URL ?>/admin/cinemas/<?= (int) $cinema['id'] ?>/delete" onsubmit="return confirm('Xóa rạp này?');">
+                    <form method="post" action="<?= BASE_URL ?>/admin/cinemas/<?= (int) $cinema['id'] ?>/delete" onsubmit="return confirm('Xóa rạp này? Rạp đã có phòng chiếu sẽ chỉ chuyển sang Ngừng hoạt động.');">
                         <?= Csrf::field() ?>
                         <button type="submit" class="btn btn-small btn-danger">Xóa</button>
                     </form>

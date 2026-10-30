@@ -9,8 +9,9 @@ class AdminTicketController extends Controller
     {
         Auth::requireAdmin();
         $this->adminView('admin/bookings/index', [
-            'pageTitle' => 'Quản lý đơn đặt vé',
-            'bookings'  => Booking::allWithDetails(),
+            'pageTitle'     => 'Quản lý đơn đặt vé',
+            'bookings'      => Booking::allWithDetails(),
+            'totalRefunded' => Booking::totalRefunded(),
         ]);
     }
 
@@ -36,11 +37,28 @@ class AdminTicketController extends Controller
         Csrf::verifyRequest();
 
         $booking = Booking::findByCode($code);
-        if ($booking) {
-            Booking::cancel((int) $booking['id']);
-            $this->flash('success', 'Đã hủy đơn vé ' . $code . '.');
+        if (!$booking) {
+            $this->notFound();
+            return;
         }
 
+        $reason = trim((string) $this->input('cancel_reason'));
+        if ($reason === '' || mb_strlen($reason) > 255) {
+            $this->flash('error', 'Vui lòng nhập lý do hủy (tối đa 255 ký tự).');
+            $this->redirect('/admin/bookings/' . rawurlencode($code));
+            return;
+        }
+
+        try {
+            Booking::cancelAndRefund((int) $booking['id'], $reason);
+        } catch (BookingException $e) {
+            $this->flash('error', $e->getMessage());
+            $this->redirect('/admin/bookings/' . rawurlencode($code));
+            return;
+        }
+
+        $this->flash('success', 'Đã hủy đơn vé ' . $code . ' và hoàn '
+            . number_format($booking['total_amount'], 0, ',', '.') . 'đ cho khách. Ghế đã được trả lại.');
         $this->redirect('/admin/bookings');
     }
 }

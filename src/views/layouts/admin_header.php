@@ -4,8 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= isset($pageTitle) ? htmlspecialchars($pageTitle) . ' - ' : '' ?>Quản trị - <?= APP_NAME ?></title>
-    <link rel="stylesheet" href="<?= BASE_URL ?>/css/style.css">
-    <link rel="stylesheet" href="<?= BASE_URL ?>/css/admin.css">
+    <?php $cssDir = dirname(__DIR__, 3) . '/public/css'; // ?v= = thời điểm sửa file, tránh trình duyệt giữ CSS cũ ?>
+    <link rel="stylesheet" href="<?= BASE_URL ?>/css/style.css?v=<?= @filemtime($cssDir . '/style.css') ?>">
+    <link rel="stylesheet" href="<?= BASE_URL ?>/css/admin.css?v=<?= @filemtime($cssDir . '/admin.css') ?>">
 </head>
 <body class="admin-body">
 <div class="admin-layout">
@@ -20,10 +21,14 @@
             <a href="<?= BASE_URL ?>/admin/rooms">Phòng chiếu</a>
             <a href="<?= BASE_URL ?>/admin/showtimes">Suất chiếu</a>
             <a href="<?= BASE_URL ?>/admin/bookings">Đơn đặt vé</a>
-            <a href="<?= BASE_URL ?>/admin/customers">Khách hàng</a>
+            <a href="<?= BASE_URL ?>/admin/customers">Tài khoản</a>
+            <a href="<?= BASE_URL ?>/admin/logs">Nhật ký hệ thống</a>
             <hr>
             <a href="<?= BASE_URL ?>/">&larr; Về trang chủ</a>
-            <a href="<?= BASE_URL ?>/logout">Đăng xuất</a>
+            <form class="logout-form" method="post" action="<?= BASE_URL ?>/logout">
+                <?= Csrf::field() ?>
+                <button type="submit" class="link-button">Đăng xuất</button>
+            </form>
         </nav>
     </aside>
     <div class="admin-main">

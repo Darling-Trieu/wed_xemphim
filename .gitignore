@@ -11,3 +11,6 @@ public/uploads/movies/*
 !public/uploads/movies/oan-linh-doi-mang.jpg
 !public/uploads/movies/clayface.jpg
 !public/uploads/movies/chi-chi-em-em-3.jpg
+
+# Log lỗi hệ thống (ErrorHandler)
+/logs/
