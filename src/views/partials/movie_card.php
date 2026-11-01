@@ -1,17 +1,20 @@
 <?php /** @var array $movie */ ?>
-<a class="movie-card" href="<?= BASE_URL ?>/movies/<?= (int) $movie['id'] ?>">
-    <div class="movie-poster" style="<?= $movie['poster_path'] ? 'background-image:url(' . htmlspecialchars(UPLOAD_URL . '/' . $movie['poster_path']) . ')' : '' ?>">
-        <?= $movie['poster_path'] ? '' : 'Chưa có poster' ?>
+<li class="movie-card">
+    <a class="poster" href="<?= BASE_URL ?>/movies/<?= (int) $movie['id'] ?>" title="<?= htmlspecialchars($movie['title']) ?>">
+        <?php if ($movie['poster_path']): ?>
+            <img src="<?= htmlspecialchars(UPLOAD_URL . '/' . $movie['poster_path']) ?>" alt="<?= htmlspecialchars($movie['title']) ?>" loading="lazy">
+        <?php else: ?>
+            <span class="poster-empty"><?= htmlspecialchars($movie['title']) ?></span>
+        <?php endif; ?>
+        <span class="age-badge"><span><?= htmlspecialchars(strtolower($movie['age_rating'])) ?></span></span>
+    </a>
+    <div class="movie-card-info">
+        <h3><a href="<?= BASE_URL ?>/movies/<?= (int) $movie['id'] ?>"><?= htmlspecialchars($movie['title']) ?></a></h3>
+        <div class="movie-meta"><?= (int) $movie['duration_minutes'] ?> phút</div>
     </div>
-    <div class="movie-card-body">
-        <h3><?= htmlspecialchars($movie['title']) ?></h3>
-        <div class="movie-meta">
-            <?= (int) $movie['duration_minutes'] ?> phút &middot; <?= htmlspecialchars($movie['age_rating']) ?>
-        </div>
-        <div style="margin-top:8px;">
-            <span class="badge <?= $movie['status'] === 'coming_soon' ? 'badge-soon' : '' ?>">
-                <?= $movie['status'] === 'now_showing' ? 'Đang chiếu' : ($movie['status'] === 'coming_soon' ? 'Sắp chiếu' : 'Ngừng chiếu') ?>
-            </span>
-        </div>
-    </div>
-</a>
+    <?php if ($movie['status'] === 'now_showing'): ?>
+        <a class="btn-book" href="<?= BASE_URL ?>/showtimes?movie_id=<?= (int) $movie['id'] ?>">Đặt ngay</a>
+    <?php else: ?>
+        <a class="btn-book btn-book--soon" href="<?= BASE_URL ?>/movies/<?= (int) $movie['id'] ?>">Chi tiết</a>
+    <?php endif; ?>
+</li>

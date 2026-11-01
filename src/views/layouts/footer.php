@@ -1,8 +1,6 @@
 </main>
 <footer class="site-footer">
-    <div class="container">
-        <p>&copy; <?= date('Y') ?> <?= APP_NAME ?></p>
-    </div>
+    <div class="container">&copy; <?= date('Y') ?> <?= APP_NAME ?></div>
 </footer>
 <script src="<?= BASE_URL ?>/js/nav.js"></script>
 <?php if (!empty($pageScripts)): ?>

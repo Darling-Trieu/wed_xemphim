@@ -13,7 +13,10 @@ class MovieController extends Controller
             $status = null;
         }
 
-        $movies = Movie::allByStatus($status);
+        // UC01: phim Ngừng chiếu không hiện phía khách
+        $movies = $status !== null
+            ? Movie::allByStatus($status)
+            : array_merge(Movie::allByStatus('now_showing'), Movie::allByStatus('coming_soon'));
 
         $this->view('movies/index', [
             'pageTitle' => 'Danh sách phim',
