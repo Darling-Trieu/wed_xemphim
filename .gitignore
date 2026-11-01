@@ -14,3 +14,6 @@ public/uploads/movies/*
 
 # Log lỗi hệ thống (ErrorHandler)
 /logs/
+
+# Bản sao lưu CSDL (chứa email, mật khẩu đã băm) - không đưa lên git
+/database/backups/
