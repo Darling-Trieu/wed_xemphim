@@ -4,12 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= isset($pageTitle) ? htmlspecialchars($pageTitle) . ' - ' : '' ?><?= APP_NAME ?></title>
-    <link rel="stylesheet" href="<?= BASE_URL ?>/css/style.css">
+    <link rel="icon" type="image/svg+xml" href="<?= BASE_URL ?>/asset/logo.svg">
+    <?php $cssDir = dirname(__DIR__, 3) . '/public/css'; // ?v= = thời điểm sửa file, tránh trình duyệt giữ CSS cũ ?>
+    <link rel="stylesheet" href="<?= BASE_URL ?>/css/style.css?v=<?= @filemtime($cssDir . '/style.css') ?>">
 </head>
 <body>
 <header class="site-header">
     <div class="container header-inner">
-        <a class="brand" href="<?= BASE_URL ?>/">🎬 Cinema<span>Booking</span></a>
+        <a class="brand" href="<?= BASE_URL ?>/" aria-label="<?= APP_NAME ?> - Trang chủ"><?php include __DIR__ . '/../partials/logo.php'; ?></a>
         <button type="button" class="nav-toggle" id="nav-toggle" aria-label="Mở menu" aria-expanded="false">
             <span></span><span></span><span></span>
         </button>

@@ -60,13 +60,29 @@ img { max-width: 100%; }
 }
 
 .brand {
-    font-size: 1.3rem;
-    font-weight: 800;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
     color: #fff;
-    letter-spacing: 0.3px;
     white-space: nowrap;
+    text-decoration: none;
 }
-.brand span { color: var(--primary); }
+.brand-mark {
+    width: 34px;
+    height: 34px;
+    flex-shrink: 0;
+    filter: drop-shadow(0 4px 10px var(--primary-glow));
+    transition: transform 0.2s ease;
+}
+.brand:hover .brand-mark { transform: rotate(-8deg) scale(1.06); }
+.brand-text {
+    font-size: 1.25rem;
+    font-weight: 800;
+    letter-spacing: -0.3px;
+    line-height: 1;
+    color: #fff;
+}
+.brand-text b { font-weight: 800; color: var(--primary); }
 
 .nav-toggle {
     display: none;

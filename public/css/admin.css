@@ -18,14 +18,12 @@
     overflow-y: auto;
 }
 .admin-sidebar .brand {
-    color: #fff;
-    font-weight: 800;
+    display: flex;
     padding: 0 20px 20px;
-    display: block;
     border-bottom: 1px solid #1c1c1f;
     margin-bottom: 10px;
 }
-.admin-sidebar .brand span { color: var(--primary); }
+.admin-sidebar .brand-text { font-size: 1.1rem; }
 .admin-sidebar nav { display: flex; flex-direction: column; }
 .admin-sidebar nav a {
     padding: 11px 20px;
