@@ -1,0 +1,14 @@
+<?php /** Logo: biểu tượng vé xem phim + nút play, dùng chung cho header khách và sidebar admin. */ ?>
+<svg class="brand-mark" viewBox="0 0 40 40" aria-hidden="true" focusable="false">
+    <defs>
+        <linearGradient id="brand-mark-fill" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#ff4d4d"/>
+            <stop offset="1" stop-color="#b8070f"/>
+        </linearGradient>
+    </defs>
+    <path fill="url(#brand-mark-fill)"
+          d="M8 4H32A4 4 0 0 1 36 8V16A4 4 0 0 0 36 24V32A4 4 0 0 1 32 36H8A4 4 0 0 1 4 32V24A4 4 0 0 0 4 16V8A4 4 0 0 1 8 4Z"/>
+    <path fill="none" stroke="#fff" stroke-opacity="0.35" stroke-width="1.2" stroke-dasharray="2 2.2" d="M11 8V32"/>
+    <path fill="#fff" d="M17 13.5V26.5L27 20Z"/>
+</svg>
+<span class="brand-text">Cinema<b>Booking</b></span>
