@@ -17,7 +17,7 @@ class AdminCustomerController extends Controller
         }
 
         $this->adminView('admin/customers/index', [
-            'pageTitle' => 'Quản lý tài khoản',
+            'pageTitle' => 'Quản lý khách hàng',
             'customers' => User::search($keyword),
             'keyword'   => $keyword,
             'error'     => $error,

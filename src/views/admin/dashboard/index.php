@@ -22,7 +22,7 @@
 </div>
 
 <div class="chart-card">
-    <h3 style="margin-top:0;">Doanh thu 14 ngày gần nhất</h3>
+    <h3>Doanh thu 14 ngày gần nhất</h3>
     <canvas id="revenue-chart" data-api-url="<?= BASE_URL ?>/api.php" height="90"></canvas>
 </div>
 

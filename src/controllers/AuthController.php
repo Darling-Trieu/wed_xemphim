@@ -87,7 +87,9 @@ class AuthController extends Controller
         $password = (string) $this->input('password');
 
         if ($login === '' || $password === '') {
-            $this->loginFailed($login, 'Cần nhập các trường bắt buộc', null, false);
+            // Ô bỏ trống được tô đỏ kèm hướng dẫn (trạng thái "Nhập thiếu" trên Figma)
+            $invalid = array_keys(array_filter(['login' => $login === '', 'password' => $password === '']));
+            $this->loginFailed($login, 'Cần nhập các trường bắt buộc', null, false, $invalid);
             return;
         }
 
@@ -127,7 +129,7 @@ class AuthController extends Controller
         $this->redirect('/');
     }
 
-    private function loginFailed(string $login, string $message, ?array $user, bool $log): void
+    private function loginFailed(string $login, string $message, ?array $user, bool $log, array $invalid = []): void
     {
         if ($log) {
             AuditLog::write('login_failed', 'auth', $user['id'] ?? null, null,
@@ -136,6 +138,7 @@ class AuthController extends Controller
         $this->bareView('auth/login', [
             'pageTitle' => 'Đăng nhập',
             'errors'    => [$message],
+            'invalid'   => $invalid,
             'old'       => ['login' => $login],
         ]);
     }
