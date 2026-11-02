@@ -14,10 +14,12 @@ class Review extends Model
         return $stmt->fetchAll();
     }
 
+    /** Mỗi user 1 đánh giá / phim (BR08): đánh giá lại thì cập nhật bản cũ. */
     public static function create(int $movieId, int $userId, int $rating, ?string $comment): void
     {
         $stmt = self::db()->prepare(
-            'INSERT INTO reviews (movie_id, user_id, rating, comment) VALUES (?, ?, ?, ?)'
+            'INSERT INTO reviews (movie_id, user_id, rating, comment) VALUES (?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE rating = VALUES(rating), comment = VALUES(comment)'
         );
         $stmt->execute([$movieId, $userId, $rating, $comment]);
     }

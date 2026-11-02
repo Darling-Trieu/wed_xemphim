@@ -4,10 +4,14 @@ require dirname(__DIR__) . '/src/config/config.php';
 require dirname(__DIR__) . '/src/core/Database.php';
 require dirname(__DIR__) . '/src/core/Model.php';
 require dirname(__DIR__) . '/src/core/Auth.php';
-require dirname(__DIR__) . '/src/models/Showtime.php';
-require dirname(__DIR__) . '/src/models/Seat.php';
-require dirname(__DIR__) . '/src/models/BookingSeat.php';
-require dirname(__DIR__) . '/src/models/Booking.php';
+require dirname(__DIR__) . '/src/core/ErrorHandler.php';
+require_once dirname(__DIR__) . '/src/models/Showtime.php';
+require_once dirname(__DIR__) . '/src/models/Seat.php';
+require_once dirname(__DIR__) . '/src/models/BookingSeat.php';
+require_once dirname(__DIR__) . '/src/models/Booking.php';
+
+ErrorHandler::register(true);
+Auth::syncWithDatabase();
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -31,26 +35,29 @@ switch ($action) {
         $seats = Seat::allByRoom((int) $showtime['room_id']);
         $bookedIds = BookingSeat::bookedSeatIds($showtimeId);
 
+        // Giá chỉ để hiển thị tạm tính; khi đặt vé server tính lại (BR05)
         $result = array_map(function ($seat) use ($bookedIds, $showtime) {
             return [
                 'id'         => (int) $seat['id'],
                 'row'        => $seat['seat_row'],
                 'number'     => (int) $seat['seat_number'],
                 'type'       => $seat['seat_type_name'],
-                'price'      => round($showtime['base_price'] * $seat['price_multiplier']),
+                'price'      => (int) $showtime['base_price'] + (int) $seat['surcharge'],
                 'is_active'  => $seat['status'] === 'active',
+                'is_aisle'   => $seat['status'] === 'aisle',
                 'is_booked'  => in_array((int) $seat['id'], $bookedIds, true),
             ];
         }, $seats);
 
         echo json_encode([
             'showtime' => [
-                'id'         => (int) $showtime['id'],
-                'movie'      => $showtime['movie_title'],
-                'cinema'     => $showtime['cinema_name'],
-                'room'       => $showtime['room_name'],
-                'show_date'  => $showtime['show_date'],
-                'start_time' => substr($showtime['start_time'], 0, 5),
+                'id'          => (int) $showtime['id'],
+                'movie'       => $showtime['movie_title'],
+                'cinema'      => $showtime['cinema_name'],
+                'room'        => $showtime['room_name'],
+                'show_date'   => $showtime['show_date'],
+                'start_time'  => substr($showtime['start_time'], 0, 5),
+                'sale_closed' => Showtime::isSaleClosed($showtime),
             ],
             'seats' => $result,
         ], JSON_UNESCAPED_UNICODE);

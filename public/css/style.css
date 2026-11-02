@@ -3,7 +3,7 @@
     --primary-dark: #b8070f;
     --primary-glow: rgba(229, 9, 20, 0.35);
 
-    --bg: #0d0d0f;
+    --bg: #000000;
     --surface: #18181b;
     --surface-alt: #202024;
     --text: #f4f4f5;
@@ -15,6 +15,19 @@
     --success-text: #4ade80;
     --error-bg: rgba(200, 30, 30, 0.18);
     --error-text: #f87171;
+
+    /* Thiết kế CineQ (Figma "Web_CineQ") */
+    --c-active: #f01010;          /* mục nav đang chọn */
+    --c-btn-book: #52ae1c;        /* nút "Đặt ngay" */
+    --c-badge: #d0da02;           /* nhãn độ tuổi */
+    --c-badge-text: #922603;
+    --c-header-border: rgba(229, 231, 235, 0.5);
+    --f-sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    /* Figma dùng Instrument Serif nhưng font này không có dấu tiếng Việt (dấu bị tách rời),
+       nên dùng Playfair Display cùng phong cách, hỗ trợ đầy đủ tiếng Việt */
+    --f-serif: "Playfair Display", Georgia, "Times New Roman", serif;
+    --f-badge: "IM Fell English SC", Georgia, serif;
+    --shadow-text: 0 4px 4px rgba(0, 0, 0, 0.25);
 }
 
 * { box-sizing: border-box; }
@@ -23,10 +36,12 @@ html { -webkit-text-size-adjust: 100%; }
 
 body {
     margin: 0;
-    font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+    font-family: var(--f-sans);
     background: var(--bg);
     color: var(--text);
     line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: clip; /* hero tràn 100vw không tạo thanh cuộn ngang; clip không phá sticky header */
 }
 
 a { color: inherit; text-decoration: none; }
@@ -41,32 +56,50 @@ img { max-width: 100%; }
 
 /* ---------- Header ---------- */
 .site-header {
-    background: #0a0a0b;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
     color: #fff;
     position: sticky;
     top: 0;
     z-index: 100;
-    border-bottom: 1px solid #000;
-    box-shadow: 0 2px 0 var(--primary);
+    border-bottom: 1px solid var(--c-header-border);
 }
 
 .header-inner {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
+    gap: 24px;
+    min-height: 70px;
     padding: 14px 20px;
     position: relative;
 }
 
 .brand {
-    font-size: 1.3rem;
-    font-weight: 800;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
     color: #fff;
-    letter-spacing: 0.3px;
     white-space: nowrap;
+    text-decoration: none;
 }
-.brand span { color: var(--primary); }
+.brand-mark {
+    width: 34px;
+    height: 34px;
+    flex-shrink: 0;
+    filter: drop-shadow(0 4px 10px var(--primary-glow));
+    transition: transform 0.2s ease;
+}
+.brand:hover .brand-mark { transform: rotate(-8deg) scale(1.06); }
+.brand-text {
+    font-size: 1.25rem;
+    font-weight: 800;
+    letter-spacing: -0.3px;
+    line-height: 1;
+    color: #fff;
+}
+.brand-text b { font-weight: 800; color: var(--primary); }
 
 .nav-toggle {
     display: none;
@@ -99,42 +132,49 @@ img { max-width: 100%; }
     flex-wrap: wrap;
 }
 
-.main-nav, .auth-nav {
-    display: flex;
-    gap: 18px;
-    align-items: center;
-    flex-wrap: wrap;
-}
+.main-nav { display: flex; gap: 32px; align-items: center; flex-wrap: wrap; }
+.auth-nav { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
 
-.main-nav a, .auth-nav a {
-    color: #c9c9ce;
-    font-size: 0.95rem;
+.main-nav a, .auth-nav > a:not(.btn-light) {
+    color: #fff;
+    font-size: 14px;
     font-weight: 500;
     transition: color 0.15s ease;
     white-space: nowrap;
 }
-.main-nav a:hover, .auth-nav a:hover { color: #fff; }
-.main-nav a.active { color: var(--primary); }
+.main-nav a:hover, .auth-nav > a:not(.btn-light):hover,
+.main-nav a[aria-current="page"], .auth-nav > a[aria-current="page"] { color: var(--c-active); }
 
-.btn-outline {
-    border: 1px solid var(--primary);
-    color: var(--primary) !important;
-    padding: 6px 14px;
-    border-radius: 999px;
-    font-weight: 600;
+/* Nút nền trắng ở header (Đăng nhập / Đăng ký / Đăng xuất) */
+.btn-light {
+    display: inline-flex;
+    align-items: center;
+    padding: 10px 16px;
+    border-radius: 8px;
+    background: #fff;
+    color: #111827;
+    font: 600 14px/17px var(--f-sans);
+    white-space: nowrap;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: background 0.15s ease;
 }
-.btn-outline:hover { background: var(--primary); color: #fff !important; }
+.btn-light--outline { border-color: #d1d5db; }
+.btn-light:hover { background: #f3f4f6; }
 
 /* ---------- Layout ---------- */
 .page-content { min-height: 70vh; padding: 28px 20px 70px; }
 
 .site-footer {
-    background: #0a0a0b;
-    color: #8b8b90;
-    padding: 24px 0;
+    border-top: 1px solid #fff;
+    min-height: 99px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px 0;
+    font-family: var(--f-serif);
+    font-size: 24px;
     text-align: center;
-    font-size: 0.88rem;
-    border-top: 1px solid #000;
 }
 
 /* ---------- Alerts ---------- */
@@ -217,33 +257,212 @@ textarea.form-control { resize: vertical; min-height: 100px; }
     flex: 1 1 160px;
 }
 
-/* ---------- Movie grid ---------- */
-.section-title {
-    font-size: 1.5rem;
-    margin: 34px 0 18px;
+/* ---------- Hero trang chủ (CineQ) ---------- */
+.hero {
     position: relative;
-    padding-left: 14px;
-    border-left: 4px solid var(--primary);
+    overflow: hidden;
+    /* tràn hết bề ngang màn hình dù nằm trong .container */
+    width: 100vw;
+    margin: -28px 0 0 calc(50% - 50vw);
+    min-height: 620px;
+    display: flex;
+    align-items: center;
+}
+.hero__bg { position: absolute; inset: 0; z-index: 0; }
+.hero__bg img {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+/* Nền ghế rạp: 1 lớp mờ, 1 lớp nét lệch xuống ~26px */
+.hero__bg img:first-child { top: 0; filter: blur(2px); }
+.hero__bg img:last-child { top: 26px; }
+.hero__bg::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, #000 0%, rgba(0,0,0,0.15) 30%, rgba(0,0,0,0.25) 75%, #000 100%);
 }
 
+.hero__inner {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 918px;
+    margin: 0 auto;
+    padding: 56px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 40px;
+}
+.hero__text { display: flex; flex-direction: column; align-items: center; gap: 24px; }
+.hero__title {
+    margin: 0;
+    max-width: 340px;
+    font-family: var(--f-serif);
+    font-weight: 400;
+    font-size: 48px;
+    line-height: 1.24;
+    text-align: center;
+    color: #f9f9f9;
+    text-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+}
+.hero__text .btn-book { width: auto; padding: 10px 22px; font-size: 17px; }
+
+/* Cụm 3 poster chồng nhau */
+.collage {
+    position: relative;
+    flex: 0 0 auto;
+    width: 327px;
+    aspect-ratio: 326.7 / 533;
+}
+.collage__item {
+    position: absolute;
+    width: 55.29%;
+    filter: drop-shadow(0 4px 2px rgba(0, 0, 0, 0.25));
+    transition: transform 0.2s ease;
+}
+.collage__item:hover { transform: translateY(-6px); z-index: 3; }
+.collage__item .poster { aspect-ratio: 180.63 / 270.14; }
+.collage__item--1 { left: 0; top: 14.23%; }
+.collage__item--2 { left: 44.69%; top: 0; }
+.collage__item--3 { left: 35.51%; top: 49.02%; }
+
+/* ---------- Tiêu đề có 2 đường kẻ (CineQ) ---------- */
+.section-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 48px 0 0;
+    padding: 10px 0;
+    font-family: var(--f-serif);
+    font-weight: 400;
+    font-size: 42px;
+    line-height: 1;
+    white-space: nowrap;
+}
+.section-title::before,
+.section-title::after {
+    content: "";
+    flex: 1 1 0;
+    height: 1px;
+    background: #fff;
+}
+.section-title > span { padding: 0 5px; }
+.hero + .movie-section .section-title { margin-top: 24px; }
+
+.page-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px 24px;
+    margin-top: 10px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid #fff;
+}
+.page-head h1 { margin: 0; font-family: var(--f-serif); font-weight: 400; font-size: 32px; line-height: 42px; }
+.page-head__tabs { display: flex; gap: 24px; font-size: 14px; font-weight: 500; }
+.page-head__tabs a:hover, .page-head__tabs a[aria-current="page"] { color: var(--c-active); }
+
+.empty-note { text-align: center; color: var(--muted); padding: 32px 0; margin: 0; }
+
+/* ---------- Lưới phim (CineQ) ---------- */
 .movie-grid {
+    list-style: none;
+    max-width: 918px;
+    margin: 0 auto;
+    padding: 32px 0 58px;
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-    gap: 20px;
+    grid-template-columns: repeat(auto-fill, 192px);
+    justify-content: center;
+    gap: 40px 50px;
 }
 
 .movie-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    text-align: center;
+}
+.movie-card .poster { width: 100%; transition: transform 0.18s ease, box-shadow 0.18s ease; }
+.movie-card .poster:hover { transform: translateY(-4px); box-shadow: 0 14px 30px rgba(0, 0, 0, 0.6); }
+.movie-card-info h3 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
     overflow: hidden;
-    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
 }
-.movie-card:hover {
-    transform: translateY(-6px);
-    border-color: var(--primary);
-    box-shadow: 0 14px 30px rgba(229, 9, 20, 0.22);
+.movie-card-info h3 a:hover { color: var(--c-active); }
+
+.poster {
+    position: relative;
+    display: block;
+    border-radius: 10px;
+    overflow: hidden;
+    aspect-ratio: 192 / 271;
+    background: #1a1a1a;
+    box-shadow: 0 4px 4px rgba(0, 0, 0, 0.25);
 }
+.poster img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.poster-empty {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    color: var(--muted);
+    font-size: 14px;
+}
+
+/* Nhãn độ tuổi vàng góc trên trái poster */
+.age-badge {
+    position: absolute;
+    top: 0;
+    left: 0;
+    min-width: 60px;
+    height: 26px;
+    padding: 0 8px;
+    background: var(--c-badge);
+    border-radius: 10px 0 10px 0;
+    color: var(--c-badge-text);
+    font-family: var(--f-badge);
+    font-size: 26px;
+    line-height: 31px;
+    text-align: center;
+    text-transform: lowercase;  /* font SC tự hiển thị chữ hoa nhỏ */
+}
+.age-badge span { position: relative; top: -5px; }
+
+.btn-book {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 110px;
+    height: 44px;
+    padding: 10px;
+    border-radius: 10px;
+    background: var(--c-btn-book);
+    color: #fff;
+    font-weight: 700;
+    font-size: 20px;
+    line-height: 24px;
+    text-shadow: var(--shadow-text);
+    white-space: nowrap;
+    transition: filter 0.15s ease, transform 0.15s ease;
+}
+.btn-book:hover { filter: brightness(1.1); transform: translateY(-1px); }
+.btn-book--soon { background: transparent; border: 1px solid #fff; font-size: 17px; text-shadow: none; }
 
 .movie-poster {
     width: 100%;
@@ -351,11 +570,24 @@ textarea.form-control { resize: vertical; min-height: 100px; }
 .seat.type-doi { border-color: #a855f7; color: #c084fc; }
 .seat.booked { background: #2a2a2e; color: #55555c; cursor: not-allowed; border-color: var(--border); }
 .seat.selected { background: var(--primary); border-color: var(--primary); color: #fff; transform: scale(1.05); }
-.seat.inactive { visibility: hidden; }
+.seat.inactive {
+    cursor: not-allowed;
+    color: #55555c;
+    border-style: dashed;
+    border-color: var(--border);
+    background: repeating-linear-gradient(45deg, transparent 0 4px, rgba(255,255,255,0.06) 4px 8px);
+}
+.seat.aisle { visibility: hidden; }
 
 .seat-legend { display: flex; gap: 18px; flex-wrap: wrap; font-size: 0.82rem; color: var(--muted); margin-bottom: 16px; }
 .seat-legend span { display: inline-flex; align-items: center; gap: 6px; }
 .legend-box { width: 16px; height: 16px; border-radius: 4px; border: 1px solid var(--border); display: inline-block; background: var(--surface-alt); }
+.legend-box.inactive { border-style: dashed; background: repeating-linear-gradient(45deg, transparent 0 3px, rgba(255,255,255,0.12) 3px 6px); }
+.seat-message { min-height: 1.4em; color: var(--error-text); font-size: 0.9rem; margin-bottom: 8px; }
+
+.price-table td.num, .price-table th.num, .data-table td.num, .data-table th.num { text-align: right; white-space: nowrap; }
+.age-confirm { display: flex; gap: 10px; align-items: flex-start; margin: 16px 0; padding: 12px; border: 1px solid var(--border); border-radius: 8px; }
+.age-confirm input { margin-top: 4px; }
 
 .booking-summary {
     display: flex;
@@ -421,11 +653,40 @@ table.data-table tbody tr:hover { background: rgba(255,255,255,0.03); }
     .main-nav, .auth-nav { flex-direction: column; align-items: flex-start; gap: 12px; }
 }
 
+@media (max-width: 900px) {
+    .hero { min-height: 0; }
+    .hero__inner { flex-direction: column; padding: 48px 20px 64px; gap: 32px; }
+    .hero__title { font-size: 42px; }
+    .collage { width: min(327px, 80vw); }
+    .section-title { font-size: 40px; }
+    .movie-grid { grid-template-columns: repeat(2, minmax(0, 192px)); gap: 36px 28px; }
+}
+
 @media (max-width: 600px) {
     .container { padding: 0 14px; }
     .page-content { padding: 20px 14px 50px; }
-    .movie-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 14px; }
+    .hero { margin-top: -20px; }
+    .hero__title { font-size: 36px; }
     .form-card, .ticket-card { padding: 20px; border-radius: 10px; }
     .seat { width: 30px; height: 30px; font-size: 0.65rem; }
-    .section-title { font-size: 1.25rem; }
+    .section-title { font-size: 30px; gap: 8px; }
+    .movie-grid { gap: 28px 16px; padding-bottom: 40px; }
+    .btn-book { width: auto; min-width: 96px; height: 40px; font-size: 17px; }
+    .age-badge { transform: scale(0.85); transform-origin: top left; }
+    .page-head h1 { font-size: 28px; }
+    .site-footer { font-size: 20px; }
 }
+
+/* Đăng xuất là form POST (có CSRF) */
+.logout-form { display: inline; margin: 0; }
+.link-button {
+    background: none;
+    border: none;
+    padding: 0;
+    font: inherit;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: #c9c9ce;
+    cursor: pointer;
+}
+.link-button:hover { color: #fff; }

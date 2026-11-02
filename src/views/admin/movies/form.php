@@ -19,7 +19,7 @@
     <div class="form-group">
         <label>Độ tuổi</label>
         <select class="form-control" name="age_rating">
-            <?php foreach (['P', 'T13', 'T16', 'T18'] as $rating): ?>
+            <?php foreach (['P', 'K', 'T13', 'T16', 'T18'] as $rating): ?>
                 <option value="<?= $rating ?>" <?= ($movie['age_rating'] ?? 'P') === $rating ? 'selected' : '' ?>><?= $rating ?></option>
             <?php endforeach; ?>
         </select>

@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../../models/Cinema.php';
+require_once __DIR__ . '/../../models/AuditLog.php';
 
 class AdminCinemaController extends Controller
 {
@@ -48,12 +49,27 @@ class AdminCinemaController extends Controller
         $this->redirect('/admin/cinemas');
     }
 
+    /** BR09: rạp đã có phòng chiếu không xóa cứng (sẽ kéo theo phòng/ghế/suất), chỉ ngừng hoạt động. */
     public function delete(string $id): void
     {
         Auth::requireAdmin();
         Csrf::verifyRequest();
-        Cinema::delete((int) $id);
-        $this->flash('success', 'Đã xóa rạp chiếu.');
+
+        $cinema = Cinema::find((int) $id);
+        if (!$cinema) {
+            $this->notFound();
+            return;
+        }
+
+        if (Cinema::hasRooms((int) $id)) {
+            Cinema::setStatus((int) $id, 'inactive');
+            AuditLog::write('deactivate', 'cinema', $id, ['status' => $cinema['status']], ['status' => 'inactive']);
+            $this->flash('success', 'Rạp đã có phòng chiếu nên không xóa, đã chuyển sang Ngừng hoạt động.');
+        } else {
+            Cinema::delete((int) $id);
+            AuditLog::write('delete', 'cinema', $id, $cinema, null);
+            $this->flash('success', 'Đã xóa rạp chiếu.');
+        }
         $this->redirect('/admin/cinemas');
     }
 
