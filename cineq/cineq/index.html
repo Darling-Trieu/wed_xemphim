@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CineQ — Trang chủ</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=Instrument+Serif&family=Inter:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="site-header__inner">
+      <a class="brand" href="index.html">Acme</a>
+      <button class="nav-toggle" aria-label="Mở menu" aria-expanded="false"><span></span><span></span><span></span></button>
+      <nav class="nav" aria-label="Điều hướng chính">
+        <a href="index.html" aria-current="page">Trang chủ</a>
+        <a href="dang-chieu.html">Đang chiếu</a>
+        <a href="#">Sắp chiếu</a>
+        <a href="#">Lịch chiếu</a>
+      </nav>
+      <div class="actions">
+        <a class="btn-light btn-light--outline" href="#">Sign in</a>
+        <a class="btn-light" href="#">Sign up</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="page">
+
+    <!-- Hero -->
+    <section class="hero">
+      <div class="hero__bg" aria-hidden="true">
+        <img src="assets/hero-cinema.png" alt="">
+        <img src="assets/hero-cinema.png" alt="">
+      </div>
+      <div class="hero__inner">
+        <h1 class="hero__title">Xin chào đến với CineQ</h1>
+        <div class="collage">
+          <a class="collage__item collage__item--1" href="#">
+            <div class="poster">
+              <img src="assets/poster-an-mang.png" alt="Án mạng xem hoàn hảo">
+              <span class="badge"><span>t18</span></span>
+            </div>
+          </a>
+          <a class="collage__item collage__item--2" href="#">
+            <div class="poster">
+              <img src="assets/poster-chi-chi-em-em.png" alt="Chị chị em em 3">
+              <span class="badge"><span>t18</span></span>
+            </div>
+          </a>
+          <a class="collage__item collage__item--3" href="#">
+            <div class="poster">
+              <img src="assets/poster-shaun.png" alt="Shaun the Sheep: Quái lạ ghê nha">
+              <span class="badge"><span>k</span></span>
+            </div>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Movie selection -->
+    <section class="movie-section">
+      <h2 class="section-title"><span>Movie selection</span></h2>
+      <ul class="movie-grid">
+        <li class="movie-card">
+          <div class="poster">
+            <img src="assets/poster-an-mang.png" alt="Án mạng xem hoàn hảo">
+            <span class="badge"><span>t18</span></span>
+          </div>
+          <a class="btn-book" href="#">Đặt ngay</a>
+        </li>
+        <li class="movie-card">
+          <div class="poster">
+            <img src="assets/poster-2.png" alt="Laddaland">
+            <span class="badge"><span>t18</span></span>
+          </div>
+          <a class="btn-book" href="#">Đặt ngay</a>
+        </li>
+        <li class="movie-card">
+          <div class="poster">
+            <img src="assets/poster-3.png" alt="Street Fighter">
+            <span class="badge"><span>t18</span></span>
+          </div>
+          <a class="btn-book" href="#">Đặt ngay</a>
+        </li>
+        <li class="movie-card">
+          <div class="poster">
+            <img src="assets/poster-chi-chi-em-em.png" alt="Chị chị em em 3">
+            <span class="badge"><span>t18</span></span>
+          </div>
+          <a class="btn-book" href="#">Đặt ngay</a>
+        </li>
+      </ul>
+    </section>
+
+    <!-- Event (Figma chưa có nội dung bên dưới) -->
+    <section class="event-section">
+      <h2 class="section-title"><span>Event</span></h2>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">© 2026 Cinema Booking</footer>
+
+  <script src="js/menu.js"></script>
+</body>
+</html>
