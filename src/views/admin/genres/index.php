@@ -1,24 +1,24 @@
 <h1>Quản lý thể loại</h1>
 
-<form class="admin-card" method="post" action="<?= BASE_URL ?>/admin/genres" style="margin-bottom:20px;">
+<form class="admin-card genre-add" method="post" action="<?= BASE_URL ?>/admin/genres">
     <?= Csrf::field() ?>
-    <div class="form-group" style="display:flex;gap:10px;align-items:flex-end;">
-        <div style="flex:1;">
-            <label>Tên thể loại mới</label>
-            <input class="form-control" type="text" name="name" required>
+    <div class="form-group" style="margin:0;">
+        <label for="genre-name">Tên thể loại mới</label>
+        <div class="genre-add-row">
+            <input class="form-control" type="text" id="genre-name" name="name" maxlength="100" required>
+            <button type="submit" class="btn">Thêm</button>
         </div>
-        <button type="submit" class="btn">Thêm</button>
     </div>
 </form>
 
-<div class="table-responsive" style="max-width:480px;">
+<div class="table-responsive genre-list">
 <table class="data-table">
     <thead><tr><th>Tên thể loại</th><th></th></tr></thead>
     <tbody>
         <?php foreach ($genres as $genre): ?>
             <tr>
                 <td><?= htmlspecialchars($genre['name']) ?></td>
-                <td>
+                <td class="actions-cell">
                     <form method="post" action="<?= BASE_URL ?>/admin/genres/<?= (int) $genre['id'] ?>/delete" onsubmit="return confirm('Xóa thể loại này?');">
                         <?= Csrf::field() ?>
                         <button type="submit" class="btn btn-small btn-danger">Xóa</button>
@@ -26,6 +26,9 @@
                 </td>
             </tr>
         <?php endforeach; ?>
+        <?php if (empty($genres)): ?>
+            <tr><td colspan="2" class="table-empty">Chưa có thể loại nào.</td></tr>
+        <?php endif; ?>
     </tbody>
 </table>
 </div>
