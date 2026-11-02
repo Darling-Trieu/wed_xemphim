@@ -16,6 +16,7 @@
    mysql -u root --default-character-set=utf8mb4 < database/schema.sql
    ```
    Lệnh trên tự tạo database `movie_booking`, toàn bộ bảng và dữ liệu mẫu.
+   **Lưu ý:** file này xóa database `movie_booking` cũ (nếu có) trước khi tạo lại, mọi dữ liệu đang có sẽ mất.
 
 3. **Cấu hình kết nối CSDL** tại `src/config/database.php` nếu MySQL của bạn khác mặc định Laragon (user `root`, không mật khẩu, cổng `3306`).
 

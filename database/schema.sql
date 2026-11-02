@@ -2,7 +2,10 @@
 -- CSDL hệ thống đặt vé xem phim trực tuyến (bản đầy đủ, đã gồm migrations 001 + 002)
 -- Import file này vào MySQL (Laragon -> HeidiSQL, hoặc: mysql -u root < schema.sql)
 -- CSDL cũ đang chạy thì dùng database/migrations/*.sql thay vì import lại file này.
+-- CẢNH BÁO: file này XÓA SẠCH CSDL movie_booking hiện có rồi tạo lại từ đầu.
 -- =====================================================================
+
+DROP DATABASE IF EXISTS movie_booking;
 
 CREATE DATABASE IF NOT EXISTS movie_booking
     CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
