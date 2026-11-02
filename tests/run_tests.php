@@ -555,6 +555,86 @@ check('16', 'Đăng nhập xong quay lại /booking/' . $st16, str_ends_with((st
 $r = $guest->follow($r);
 check('16', '... rồi về đúng sơ đồ ghế của suất', str_ends_with((string) $r['location'], "/showtimes/$st16/seats"), 'location ' . $r['location']);
 
+// ---------------------------------------------------------------- Ca 17: phim / phòng ngừng thì không bán
+section('Ca 17 - Phim Ngừng chiếu / phòng Ngừng hoạt động -> suất không bán được (UC01, UC11)');
+
+$st17 = makeShowtime($movieT13, 2, strtotime('+8 days 10:00'));
+$bookingsBefore = (int) scalar('SELECT COUNT(*) FROM bookings');
+db()->exec("UPDATE movies SET status = 'ended' WHERE id = $movieT13");
+$r = book($userA, $st17, [seatId(2, 'A1')]);
+check('17', 'Phim Ngừng chiếu: đặt vé bị từ chối, quay về sơ đồ ghế, không tạo đơn',
+    str_ends_with((string) $r['location'], "/showtimes/$st17/seats")
+    && str_contains(flashError($userA->follow($r)['body']), 'không còn mở bán')
+    && (int) scalar('SELECT COUNT(*) FROM bookings') === $bookingsBefore, 'location ' . $r['location']);
+check('17', 'Lịch chiếu không còn liệt kê suất của phim Ngừng chiếu', !str_contains($userA->get('/showtimes')['body'], "/showtimes/$st17/seats"));
+check('17', 'Trang chi tiết phim Ngừng chiếu -> 404', $userA->get("/movies/$movieT13")['status'] === 404);
+db()->exec("UPDATE movies SET status = 'now_showing' WHERE id = $movieT13");
+
+db()->exec('UPDATE rooms SET status = "inactive" WHERE id = 2');
+$r = book($userA, $st17, [seatId(2, 'A1')]);
+check('17', 'Phòng Ngừng hoạt động: đặt vé bị từ chối, không tạo đơn',
+    bookingCodeFrom($r) === null && (int) scalar('SELECT COUNT(*) FROM bookings') === $bookingsBefore, 'location ' . $r['location']);
+check('17', 'Lịch chiếu không còn liệt kê suất của phòng Ngừng hoạt động', !str_contains($userA->get('/showtimes')['body'], "/showtimes/$st17/seats"));
+db()->exec('UPDATE rooms SET status = "active" WHERE id = 2');
+check('17', 'Hoạt động lại thì suất hiện lại trong lịch chiếu', str_contains($userA->get('/showtimes')['body'], "/showtimes/$st17/seats"));
+
+// ---------------------------------------------------------------- Ca 18: đánh giá phim (BR08)
+section('Ca 18 - Chỉ người đã xem phim mới đánh giá được (BR08)');
+
+$reviewsBefore = (int) scalar('SELECT COUNT(*) FROM reviews');
+$token = $userB->csrf('/account');
+$r = $userB->post("/movies/$movieT13/reviews", ['csrf_token' => $token, 'rating' => 5, 'comment' => 'Chưa xem mà vẫn khen']);
+check('18', 'Chưa xem phim -> bị từ chối, không lưu đánh giá',
+    str_contains(flashError($userB->follow($r)['body']), 'sau khi đã xem phim')
+    && (int) scalar('SELECT COUNT(*) FROM reviews') === $reviewsBefore);
+check('18', 'Chưa xem phim -> trang phim không hiện form đánh giá', !str_contains($userB->get("/movies/$movieT13")['body'], '/reviews"'));
+
+// user@example.com có đơn VEDEMO0011 của suất Shaun the Sheep đã chiếu xong (dữ liệu mẫu)
+$token = $userA->csrf('/account');
+$r = $userA->post("/movies/$moviePG/reviews", ['csrf_token' => $token, 'rating' => 4, 'comment' => str_repeat('x', 600)]);
+check('18', 'Nhận xét > 500 ký tự -> báo lỗi, không ra 500', $r['status'] === 302
+    && str_contains(flashError($userA->follow($r)['body']), 'tối đa 500 ký tự'), 'status ' . $r['status']);
+$r = $userA->post("/movies/$moviePG/reviews", ['csrf_token' => $token, 'rating' => 4, 'comment' => 'Xem xong rồi, rất vui']);
+check('18', 'Đã xem xong phim -> đánh giá được',
+    scalar('SELECT comment FROM reviews WHERE movie_id = ? AND user_id = ?', [$moviePG, userId('user@example.com')]) === 'Xem xong rồi, rất vui');
+
+// ---------------------------------------------------------------- Ca 19: dữ liệu sai không gây lỗi 500
+section('Ca 19 - Dữ liệu nhập sai -> báo lỗi rõ ràng, không "Lỗi hệ thống"');
+
+$token = $admin->csrf('/admin/genres');
+$r = $admin->post('/admin/genres', ['csrf_token' => $token, 'name' => 'Hài']);
+check('19', 'Thêm thể loại trùng tên -> "đã tồn tại"', $r['status'] === 302
+    && str_contains(flashError($admin->follow($r)['body']), 'đã tồn tại'), 'status ' . $r['status']);
+$r = $admin->post('/admin/genres', ['csrf_token' => $token, 'name' => 'Thể loại Kiểm thử']);
+check('19', 'Thêm thể loại được ghi log',(int) scalar("SELECT COUNT(*) FROM audit_logs WHERE entity = 'genre'") === 1);
+
+$moviesBefore = (int) scalar('SELECT COUNT(*) FROM movies');
+$r = $admin->post('/admin/movies', ['csrf_token' => $token, 'title' => 'Phim Sai Trạng Thái', 'duration_minutes' => 90,
+    'age_rating' => 'P', 'status' => 'bogus']);
+check('19', 'Phim có trạng thái không hợp lệ -> báo lỗi, không tạo phim', $r['status'] === 302
+    && str_contains(flashError($admin->follow($r)['body']), 'Trạng thái phim không hợp lệ')
+    && (int) scalar('SELECT COUNT(*) FROM movies') === $moviesBefore, 'status ' . $r['status']);
+$r = $admin->post('/admin/movies', ['csrf_token' => $token, 'title' => '', 'duration_minutes' => 90, 'age_rating' => 'P', 'status' => 'coming_soon']);
+check('19', 'Phim không có tên -> báo lỗi', str_contains(flashError($admin->follow($r)['body']), 'Tên phim không được để trống'));
+
+$r = $admin->post('/admin/cinemas', ['csrf_token' => $token, 'name' => '', 'address' => 'x', 'city' => 'y', 'status' => 'active']);
+check('19', 'Rạp không có tên -> báo lỗi, không tạo rạp', $r['status'] === 302
+    && str_contains(flashError($admin->follow($r)['body']), 'Tên rạp không được để trống')
+    && (int) scalar("SELECT COUNT(*) FROM cinemas WHERE name = ''") === 0, 'status ' . $r['status']);
+check('19', 'Sửa rạp không tồn tại -> 404', $admin->post('/admin/cinemas/99999', ['csrf_token' => $token, 'name' => 'a',
+    'address' => 'b', 'city' => 'c', 'status' => 'active'])['status'] === 404);
+
+$guest = new Client($A);
+$token = $guest->csrf('/register');
+$r = $guest->post('/register', ['csrf_token' => $token, 'full_name' => 'Khách Mới', 'email' => 'khach.moi@example.com',
+    'phone' => str_repeat('9', 30), 'password' => 'abc123', 'password_confirm' => 'abc123']);
+check('19', 'Đăng ký với SĐT sai định dạng -> báo lỗi, không tạo tài khoản', $r['status'] === 200
+    && str_contains($r['body'], 'Số điện thoại phải gồm 10 chữ số')
+    && (int) scalar("SELECT COUNT(*) FROM users WHERE email = 'khach.moi@example.com'") === 0, 'status ' . $r['status']);
+$r = $guest->post('/register', ['csrf_token' => $token, 'email' => 'thieu.ten@example.com', 'password' => 'abc123', 'password_confirm' => 'abc123']);
+check('19', 'Đăng ký thiếu trường họ tên -> báo lỗi, không ra 500', $r['status'] === 200
+    && str_contains($r['body'], 'Vui lòng nhập đầy đủ'), 'status ' . $r['status']);
+
 // ---------------------------------------------------------------- Lỗi hệ thống
 section('Lỗi CSDL không lộ chi tiết SQL');
 db()->exec('RENAME TABLE showtime_seats TO showtime_seats_tmp');

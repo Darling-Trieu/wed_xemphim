@@ -57,6 +57,19 @@ abstract class Controller
         return is_string($value) ? trim($value) : $value;
     }
 
+    /** Chuỗi có độ dài (ký tự Unicode) trong khoảng [$min, $max], dùng trước khi ghi vào cột VARCHAR. */
+    protected function validLength(?string $value, int $max, int $min = 1): bool
+    {
+        $length = mb_strlen((string) $value);
+        return $length >= $min && $length <= $max;
+    }
+
+    /** SĐT Việt Nam 10 chữ số, bắt đầu bằng 0. */
+    protected function validPhone(?string $phone): bool
+    {
+        return is_string($phone) && preg_match('/^0\d{9}$/', $phone) === 1;
+    }
+
     protected function flash(string $key, ?string $message = null)
     {
         if ($message !== null) {

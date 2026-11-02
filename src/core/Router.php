@@ -34,6 +34,14 @@ class Router
     public function dispatch(string $method, string $uri): void
     {
         $path = parse_url($uri, PHP_URL_PATH) ?: '/';
+        // Site chạy trong thư mục con (BASE_URL = '/New folder/public'): route khai báo không kèm tiền tố
+        $base = rtrim(BASE_URL, '/');
+        if ($base !== '') {
+            $path = rawurldecode($path);
+            if ($path === $base || str_starts_with($path, $base . '/')) {
+                $path = substr($path, strlen($base));
+            }
+        }
         $path = rtrim($path, '/');
         if ($path === '') {
             $path = '/';

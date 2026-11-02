@@ -6,7 +6,7 @@ class Showtime extends Model
     {
         $stmt = self::db()->prepare(
             'SELECT st.*, m.title AS movie_title, m.duration_minutes, m.poster_path, m.age_rating,
-                    m.status AS movie_status,
+                    m.status AS movie_status, r.status AS room_status, c.status AS cinema_status,
                     r.name AS room_name, c.id AS cinema_id, c.name AS cinema_name, c.address AS cinema_address
              FROM showtimes st
              INNER JOIN movies m ON m.id = st.movie_id
@@ -24,11 +24,20 @@ class Showtime extends Model
         return strtotime($showtime['show_date'] . ' ' . $showtime['start_time']);
     }
 
-    /** Đóng bán khi đã hủy hoặc còn dưới 15 phút nữa là chiếu (BR03), tính theo thời gian thực. */
+    /** Phim Ngừng chiếu hoặc phòng / rạp Ngừng hoạt động thì suất không bán được nữa (UC01, UC11). */
+    public static function isVenueInactive(array $showtime): bool
+    {
+        return ($showtime['movie_status'] ?? 'now_showing') === 'ended'
+            || ($showtime['room_status'] ?? 'active') !== 'active'
+            || ($showtime['cinema_status'] ?? 'active') !== 'active';
+    }
+
+    /** Đóng bán khi đã hủy, phim/phòng/rạp ngừng, hoặc còn dưới 15 phút nữa là chiếu (BR03), tính theo thời gian thực. */
     public static function isSaleClosed(array $showtime, ?int $now = null): bool
     {
         $now = $now ?? time();
         return $showtime['status'] !== 'active'
+            || self::isVenueInactive($showtime)
             || $now >= self::startTimestamp($showtime) - SALE_CLOSE_MINUTES * 60;
     }
 
@@ -49,7 +58,8 @@ class Showtime extends Model
                 INNER JOIN movies m ON m.id = st.movie_id
                 INNER JOIN rooms r ON r.id = st.room_id
                 INNER JOIN cinemas c ON c.id = r.cinema_id
-                WHERE st.status = "active" AND st.show_date >= CURDATE()';
+                WHERE st.status = "active" AND TIMESTAMP(st.show_date, st.start_time) > NOW()
+                  AND m.status <> "ended" AND r.status = "active" AND c.status = "active"';
         $params = [];
 
         if ($movieId) {
@@ -137,21 +147,33 @@ class Showtime extends Model
 
     /**
      * Thêm / sửa suất trong 1 transaction có khóa dòng phòng chiếu, để 2 admin lưu cùng lúc
-     * không chèn được 2 suất trùng giờ. Trả về [id, null] hoặc [null, suất bị trùng].
+     * không chèn được 2 suất trùng giờ. Khi sửa, dòng suất được khóa rồi mới kiểm tra số vé
+     * đã bán, để 1 đơn đặt chen vào giữa không làm suất đã bán vé bị đổi giờ / phòng / phim.
+     * Trả về [id, null, null], [null, suất bị trùng, null] hoặc [null, null, thông báo lỗi].
      *
-     * @return array{0: ?int, 1: ?array}
+     * @return array{0: ?int, 1: ?array, 2: ?string}
      */
     public static function saveWithoutOverlap(array $data, ?int $id = null): array
     {
         $db = self::db();
         $db->beginTransaction();
         try {
+            if ($id !== null) {
+                $stmt = $db->prepare('SELECT * FROM showtimes WHERE id = ? FOR UPDATE');
+                $stmt->execute([$id]);
+                $current = $stmt->fetch();
+                if ($current && self::soldCount($id) > 0 && self::scheduleChanged($current, $data)) {
+                    $db->rollBack();
+                    return [null, null, 'Suất chiếu đã bán vé: chỉ được sửa giá cơ bản, không đổi phim / phòng / giờ chiếu.'];
+                }
+            }
+
             $db->prepare('SELECT id FROM rooms WHERE id = ? FOR UPDATE')->execute([$data['room_id']]);
 
             $conflict = self::findOverlap($data['room_id'], $data['starts_at'], $data['ends_at'], $id);
             if ($conflict) {
                 $db->rollBack();
-                return [null, $conflict];
+                return [null, $conflict, null];
             }
 
             if ($id === null) {
@@ -160,13 +182,21 @@ class Showtime extends Model
                 self::update($id, $data);
             }
             $db->commit();
-            return [$id, null];
+            return [$id, null, null];
         } catch (Throwable $e) {
             if ($db->inTransaction()) {
                 $db->rollBack();
             }
             throw $e;
         }
+    }
+
+    /** Đổi phim / phòng / giờ bắt đầu so với suất đang lưu ($data theo dạng của AdminShowtimeController::validate). */
+    public static function scheduleChanged(array $existing, array $data): bool
+    {
+        return (int) $existing['movie_id'] !== (int) $data['movie_id']
+            || (int) $existing['room_id'] !== (int) $data['room_id']
+            || self::startTimestamp($existing) !== strtotime($data['starts_at']);
     }
 
     /** Hủy suất (không xóa cứng - BR09). Chỉ suất đang hoạt động và chưa bán vé nào. */

@@ -58,17 +58,15 @@ class AdminShowtimeController extends Controller
         $showtime = $this->findEditable((int) $id);
 
         [$data, $error] = $this->validate($showtime);
-        if (!$error && Showtime::soldCount((int) $id) > 0 && $this->scheduleChanged($showtime, $data)) {
-            $error = 'Suất chiếu đã bán vé: chỉ được sửa giá cơ bản, không đổi phim / phòng / giờ chiếu.';
-        }
         if ($error) {
             $this->renderForm($showtime, $_POST, $error);
             return;
         }
 
-        [, $conflict] = Showtime::saveWithoutOverlap($data, (int) $id);
-        if ($conflict) {
-            $this->renderForm($showtime, $_POST, $this->overlapMessage($conflict));
+        // Kiểm tra "đã bán vé thì không đổi lịch" nằm trong transaction của saveWithoutOverlap
+        [, $conflict, $error] = Showtime::saveWithoutOverlap($data, (int) $id);
+        if ($error || $conflict) {
+            $this->renderForm($showtime, $_POST, $error ?? $this->overlapMessage($conflict));
             return;
         }
 
@@ -190,13 +188,6 @@ class AdminShowtimeController extends Controller
             'starts_at'  => date('Y-m-d H:i:s', $startTimestamp),
             'ends_at'    => date('Y-m-d H:i:s', $endTimestamp),
         ], null];
-    }
-
-    private function scheduleChanged(array $existing, array $data): bool
-    {
-        return (int) $existing['movie_id'] !== $data['movie_id']
-            || (int) $existing['room_id'] !== $data['room_id']
-            || Showtime::startTimestamp($existing) !== strtotime($data['starts_at']);
     }
 
     private function overlapMessage(array $conflict): string

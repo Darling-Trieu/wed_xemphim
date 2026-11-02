@@ -14,6 +14,22 @@ class Review extends Model
         return $stmt->fetchAll();
     }
 
+    /** BR08: chỉ đánh giá được khi có đơn đã xác nhận của 1 suất phim này đã chiếu xong. */
+    public static function canReview(int $userId, int $movieId): bool
+    {
+        $stmt = self::db()->prepare(
+            'SELECT EXISTS(
+                SELECT 1 FROM bookings b
+                INNER JOIN showtimes st ON st.id = b.showtime_id
+                INNER JOIN movies m ON m.id = st.movie_id
+                WHERE b.user_id = ? AND st.movie_id = ? AND b.status = "paid"
+                  AND b.show_start + INTERVAL m.duration_minutes MINUTE <= NOW()
+            )'
+        );
+        $stmt->execute([$userId, $movieId]);
+        return (bool) $stmt->fetchColumn();
+    }
+
     /** Mỗi user 1 đánh giá / phim (BR08): đánh giá lại thì cập nhật bản cũ. */
     public static function create(int $movieId, int $userId, int $rating, ?string $comment): void
     {
