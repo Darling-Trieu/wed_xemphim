@@ -8,6 +8,7 @@ class AdminLogController extends Controller
     public const ENTITIES = [
         'auth'     => 'Đăng nhập',
         'movie'    => 'Phim',
+        'genre'    => 'Thể loại',
         'room'     => 'Phòng chiếu',
         'cinema'   => 'Rạp',
         'showtime' => 'Suất chiếu',

@@ -17,3 +17,4 @@ public/uploads/movies/*
 
 # Bản sao lưu CSDL (chứa email, mật khẩu đã băm) - không đưa lên git
 /database/backups/
+/public/*.sql

@@ -8,6 +8,8 @@ class AdminMovieController extends Controller
 {
     private const ALLOWED_MIME = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
     private const MAX_SIZE = 3 * 1024 * 1024; // 3MB
+    private const AGE_RATINGS = ['P', 'K', 'T13', 'T16', 'T18'];
+    private const STATUSES = ['now_showing', 'coming_soon', 'ended'];
 
     public function index(): void
     {
@@ -35,13 +37,15 @@ class AdminMovieController extends Controller
         Csrf::verifyRequest();
 
         $data = $this->collectInput();
-        if ($error = $this->validateTrailer($data['trailer_url'])) {
+        $error = $this->validate($data);
+        if (!$error) {
+            [$data['poster_path'], $error] = $this->handleUpload();
+        }
+        if ($error) {
             $this->flash('error', $error);
             $this->redirect('/admin/movies/create');
             return;
         }
-        $posterPath = $this->handleUpload();
-        $data['poster_path'] = $posterPath;
 
         $movieId = Movie::create($data);
         Genre::syncForMovie($movieId, $_POST['genre_ids'] ?? []);
@@ -82,14 +86,15 @@ class AdminMovieController extends Controller
         }
 
         $data = $this->collectInput();
-        if ($error = $this->validateTrailer($data['trailer_url'])) {
+        $error = $this->validate($data);
+        if (!$error) {
+            // poster_path null = giữ poster cũ (Movie::update)
+            [$data['poster_path'], $error] = $this->handleUpload();
+        }
+        if ($error) {
             $this->flash('error', $error);
             $this->redirect('/admin/movies/' . (int) $id . '/edit');
             return;
-        }
-        $posterPath = $this->handleUpload();
-        if ($posterPath) {
-            $data['poster_path'] = $posterPath;
         }
 
         Movie::update((int) $id, $data);
@@ -127,6 +132,30 @@ class AdminMovieController extends Controller
         $this->redirect('/admin/movies');
     }
 
+    /** Kiểm tra dữ liệu phim ở server (UC10); trả về thông báo lỗi đầu tiên hoặc null. */
+    private function validate(array $data): ?string
+    {
+        if (!$this->validLength($data['title'], 200)) {
+            return 'Tên phim không được để trống và tối đa 200 ký tự.';
+        }
+        if ($data['duration_minutes'] < 1 || $data['duration_minutes'] > 600) {
+            return 'Thời lượng phải từ 1 đến 600 phút.';
+        }
+        if (!in_array($data['age_rating'], self::AGE_RATINGS, true)) {
+            return 'Nhãn độ tuổi không hợp lệ.';
+        }
+        if (!in_array($data['status'], self::STATUSES, true)) {
+            return 'Trạng thái phim không hợp lệ.';
+        }
+        if ($data['release_date']) {
+            $date = DateTime::createFromFormat('!Y-m-d', $data['release_date']);
+            if (!$date || $date->format('Y-m-d') !== $data['release_date']) {
+                return 'Ngày khởi chiếu không hợp lệ.';
+            }
+        }
+        return $this->validateTrailer($data['trailer_url']);
+    }
+
     /** Chỉ nhận link http/https (chặn "javascript:..." bị in vào href -> XSS). */
     private function validateTrailer(?string $url): ?string
     {
@@ -154,20 +183,24 @@ class AdminMovieController extends Controller
         ];
     }
 
-    private function handleUpload(): ?string
+    /**
+     * Lưu poster tải lên. Không chọn file -> [null, null]; lỗi -> [null, thông báo] để
+     * controller dừng lại, không tạo / sửa phim khi ảnh hỏng.
+     *
+     * @return array{0: ?string, 1: ?string} [tên file, lỗi]
+     */
+    private function handleUpload(): array
     {
         if (empty($_FILES['poster']) || $_FILES['poster']['error'] === UPLOAD_ERR_NO_FILE) {
-            return null;
+            return [null, null];
         }
 
         $file = $_FILES['poster'];
         if ($file['error'] !== UPLOAD_ERR_OK) {
-            $this->flash('error', 'Tải ảnh lên thất bại.');
-            return null;
+            return [null, 'Tải ảnh lên thất bại.'];
         }
         if ($file['size'] > self::MAX_SIZE) {
-            $this->flash('error', 'Ảnh vượt quá dung lượng cho phép (3MB).');
-            return null;
+            return [null, 'Ảnh vượt quá dung lượng cho phép (3MB).'];
         }
 
         $finfo = finfo_open(FILEINFO_MIME_TYPE);
@@ -175,8 +208,7 @@ class AdminMovieController extends Controller
         finfo_close($finfo);
 
         if (!isset(self::ALLOWED_MIME[$mime])) {
-            $this->flash('error', 'Chỉ chấp nhận ảnh JPG, PNG hoặc WEBP.');
-            return null;
+            return [null, 'Chỉ chấp nhận ảnh JPG, PNG hoặc WEBP.'];
         }
 
         if (!is_dir(UPLOAD_DIR)) {
@@ -184,8 +216,10 @@ class AdminMovieController extends Controller
         }
 
         $filename = bin2hex(random_bytes(16)) . '.' . self::ALLOWED_MIME[$mime];
-        move_uploaded_file($file['tmp_name'], UPLOAD_DIR . '/' . $filename);
+        if (!move_uploaded_file($file['tmp_name'], UPLOAD_DIR . '/' . $filename)) {
+            return [null, 'Không lưu được ảnh poster, vui lòng thử lại.'];
+        }
 
-        return $filename;
+        return [$filename, null];
     }
 }

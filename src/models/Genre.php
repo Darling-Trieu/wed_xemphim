@@ -15,6 +15,14 @@ class Genre extends Model
         return $row ?: null;
     }
 
+    /** So sánh theo collation của cột (utf8mb4_unicode_ci: không phân biệt hoa thường). */
+    public static function nameExists(string $name): bool
+    {
+        $stmt = self::db()->prepare('SELECT EXISTS(SELECT 1 FROM genres WHERE name = ?)');
+        $stmt->execute([$name]);
+        return (bool) $stmt->fetchColumn();
+    }
+
     public static function create(string $name): int
     {
         $stmt = self::db()->prepare('INSERT INTO genres (name) VALUES (?)');

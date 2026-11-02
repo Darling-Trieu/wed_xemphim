@@ -18,9 +18,9 @@ class AuthController extends Controller
     {
         Csrf::verifyRequest();
 
-        $fullName = $this->input('full_name');
+        $fullName = (string) $this->input('full_name', '');
         $email = strtolower((string) $this->input('email'));
-        $phone = $this->input('phone');
+        $phone = (string) $this->input('phone', '');
         $password = (string) $this->input('password');
         $passwordConfirm = (string) $this->input('password_confirm');
 
@@ -28,8 +28,11 @@ class AuthController extends Controller
         if ($fullName === '' || $email === '' || $password === '') {
             $errors[] = 'Vui lòng nhập đầy đủ thông tin bắt buộc.';
         }
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL) || mb_strlen($email) > 150) {
             $errors[] = 'Email không hợp lệ.';
+        }
+        if ($phone !== '' && !$this->validPhone($phone)) {
+            $errors[] = 'Số điện thoại phải gồm 10 chữ số, bắt đầu bằng 0.';
         }
         if (strlen($password) < 6) {
             $errors[] = 'Mật khẩu phải có ít nhất 6 ký tự.';
@@ -37,7 +40,7 @@ class AuthController extends Controller
         if ($password !== $passwordConfirm) {
             $errors[] = 'Xác nhận mật khẩu không khớp.';
         }
-        if (mb_strlen((string) $fullName) > 100) {
+        if (mb_strlen($fullName) > 100) {
             $errors[] = 'Họ tên tối đa 100 ký tự.';
         }
         if (empty($errors) && (User::findByEmail($email) || ($phone && User::findByPhone($phone)))) {

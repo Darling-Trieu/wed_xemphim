@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../../models/Genre.php';
+require_once __DIR__ . '/../../models/AuditLog.php';
 
 class AdminGenreController extends Controller
 {
@@ -19,8 +20,13 @@ class AdminGenreController extends Controller
         Csrf::verifyRequest();
 
         $name = (string) $this->input('name');
-        if ($name !== '') {
-            Genre::create($name);
+        if (!$this->validLength($name, 100)) {
+            $this->flash('error', 'Tên thể loại không được để trống và tối đa 100 ký tự.');
+        } elseif (Genre::nameExists($name)) {
+            $this->flash('error', 'Thể loại "' . $name . '" đã tồn tại.');
+        } else {
+            $id = Genre::create($name);
+            AuditLog::write('create', 'genre', $id, null, ['name' => $name]);
             $this->flash('success', 'Đã thêm thể loại.');
         }
 
@@ -31,7 +37,15 @@ class AdminGenreController extends Controller
     {
         Auth::requireAdmin();
         Csrf::verifyRequest();
+
+        $genre = Genre::find((int) $id);
+        if (!$genre) {
+            $this->notFound();
+            return;
+        }
+
         Genre::delete((int) $id);
+        AuditLog::write('delete', 'genre', $id, $genre, null);
         $this->flash('success', 'Đã xóa thể loại.');
         $this->redirect('/admin/genres');
     }

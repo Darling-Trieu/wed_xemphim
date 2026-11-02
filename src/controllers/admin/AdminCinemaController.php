@@ -24,7 +24,16 @@ class AdminCinemaController extends Controller
     {
         Auth::requireAdmin();
         Csrf::verifyRequest();
-        Cinema::create($this->collectInput());
+
+        $data = $this->collectInput();
+        if ($error = $this->validate($data)) {
+            $this->flash('error', $error);
+            $this->redirect('/admin/cinemas/create');
+            return;
+        }
+
+        $id = Cinema::create($data);
+        AuditLog::write('create', 'cinema', $id, null, $data);
         $this->flash('success', 'Đã thêm rạp chiếu.');
         $this->redirect('/admin/cinemas');
     }
@@ -44,7 +53,22 @@ class AdminCinemaController extends Controller
     {
         Auth::requireAdmin();
         Csrf::verifyRequest();
-        Cinema::update((int) $id, $this->collectInput());
+
+        $before = Cinema::find((int) $id);
+        if (!$before) {
+            $this->notFound();
+            return;
+        }
+
+        $data = $this->collectInput();
+        if ($error = $this->validate($data)) {
+            $this->flash('error', $error);
+            $this->redirect('/admin/cinemas/' . (int) $id . '/edit');
+            return;
+        }
+
+        Cinema::update((int) $id, $data);
+        AuditLog::write('update', 'cinema', $id, $before, $data);
         $this->flash('success', 'Đã cập nhật rạp chiếu.');
         $this->redirect('/admin/cinemas');
     }
@@ -79,8 +103,28 @@ class AdminCinemaController extends Controller
             'name'    => (string) $this->input('name'),
             'address' => (string) $this->input('address'),
             'city'    => (string) $this->input('city'),
-            'phone'   => $this->input('phone'),
+            'phone'   => $this->input('phone') ?: null,
             'status'  => (string) $this->input('status', 'active'),
         ];
+    }
+
+    private function validate(array $data): ?string
+    {
+        if (!$this->validLength($data['name'], 150)) {
+            return 'Tên rạp không được để trống và tối đa 150 ký tự.';
+        }
+        if (!$this->validLength($data['address'], 255)) {
+            return 'Địa chỉ không được để trống và tối đa 255 ký tự.';
+        }
+        if (!$this->validLength($data['city'], 100)) {
+            return 'Thành phố không được để trống và tối đa 100 ký tự.';
+        }
+        if ($data['phone'] !== null && !preg_match('/^[0-9 +().-]{8,20}$/', $data['phone'])) {
+            return 'Số điện thoại rạp không hợp lệ.';
+        }
+        if (!in_array($data['status'], ['active', 'inactive'], true)) {
+            return 'Trạng thái rạp không hợp lệ.';
+        }
+        return null;
     }
 }

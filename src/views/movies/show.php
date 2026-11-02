@@ -34,7 +34,7 @@
 
 <h2 class="section-title">Đánh giá phim</h2>
 
-<?php if (Auth::check()): ?>
+<?php if ($canReview): ?>
     <form class="form-card" method="post" action="<?= BASE_URL ?>/movies/<?= (int) $movie['id'] ?>/reviews" style="margin-left:0;">
         <?= Csrf::field() ?>
         <div class="form-group">
@@ -49,10 +49,12 @@
         </div>
         <div class="form-group">
             <label>Nhận xét</label>
-            <textarea name="comment" class="form-control" placeholder="Chia sẻ cảm nhận của bạn..."></textarea>
+            <textarea name="comment" class="form-control" maxlength="500" placeholder="Chia sẻ cảm nhận của bạn..."></textarea>
         </div>
         <button type="submit" class="btn">Gửi đánh giá</button>
     </form>
+<?php elseif (Auth::check()): ?>
+    <p class="movie-meta">Bạn có thể đánh giá sau khi đã xem phim này.</p>
 <?php else: ?>
     <p><a href="<?= BASE_URL ?>/login">Đăng nhập</a> để đánh giá phim này.</p>
 <?php endif; ?>

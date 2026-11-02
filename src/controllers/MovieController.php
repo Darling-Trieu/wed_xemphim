@@ -28,7 +28,8 @@ class MovieController extends Controller
     public function show(string $id): void
     {
         $movie = Movie::find((int) $id);
-        if (!$movie) {
+        // UC01: phim Ngừng chiếu không hiện phía khách, kể cả khi gõ thẳng URL
+        if (!$movie || $movie['status'] === 'ended') {
             $this->notFound();
             return;
         }
@@ -43,6 +44,7 @@ class MovieController extends Controller
             'genres'    => $genres,
             'reviews'   => $reviews,
             'avgRating' => $avgRating,
+            'canReview' => Auth::check() && Review::canReview(Auth::id(), (int) $id),
         ]);
     }
 
@@ -57,9 +59,20 @@ class MovieController extends Controller
             return;
         }
 
+        if (!Review::canReview(Auth::id(), (int) $id)) {
+            $this->flash('error', 'Bạn chỉ có thể đánh giá sau khi đã xem phim.');
+            $this->redirect('/movies/' . (int) $id);
+            return;
+        }
+
         $rating = (int) $this->input('rating', 5);
         $rating = max(1, min(5, $rating));
-        $comment = $this->input('comment');
+        $comment = (string) $this->input('comment', '');
+        if (mb_strlen($comment) > 500) {
+            $this->flash('error', 'Nhận xét tối đa 500 ký tự.');
+            $this->redirect('/movies/' . (int) $id);
+            return;
+        }
 
         Review::create((int) $id, Auth::id(), $rating, $comment ?: null);
 

@@ -13,7 +13,7 @@
 
 2. **Tạo CSDL**: mở HeidiSQL (đi kèm Laragon) hoặc dùng lệnh:
    ```
-   mysql -u root < database/schema.sql
+   mysql -u root --default-character-set=utf8mb4 < database/schema.sql
    ```
    Lệnh trên tự tạo database `movie_booking`, toàn bộ bảng và dữ liệu mẫu.
 
