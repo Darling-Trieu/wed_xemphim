@@ -27,14 +27,16 @@
 
 3. **Cấu hình kết nối CSDL** tại `src/config/database.php` nếu MySQL của bạn khác mặc định Laragon (user `root`, không mật khẩu, cổng `3306`).
 
-4. **Khởi động Laragon** (Start All). Laragon tự nhận diện thư mục `public/` bên trong dự án và tạo virtual host trỏ đúng vào đó — truy cập qua `http://<ten-thu-muc-du-an>.test` (xem trong Laragon > Menu > www).
+4. **Cấu hình gửi email**: hệ thống dùng hàm `mail()` của PHP để gửi email xác nhận sau khi đặt vé. Cấu hình SMTP trong `php.ini` (với Laragon, thường là `sendmail_path`) và có thể đặt biến môi trường `MAIL_FROM_ADDRESS`, `MAIL_FROM_NAME`.
+
+5. **Khởi động Laragon** (Start All). Laragon tự nhận diện thư mục `public/` bên trong dự án và tạo virtual host trỏ đúng vào đó — truy cập qua `http://<ten-thu-muc-du-an>.test` (xem trong Laragon > Menu > www).
 
    Nếu không dùng auto vhost, có thể chạy PHP dev server để thử nhanh:
    ```
    php -S localhost:8000 -t public
    ```
 
-5. **Biên dịch TypeScript** (chỉ cần chạy lại mỗi khi sửa file trong `ts/`):
+6. **Biên dịch TypeScript** (chỉ cần chạy lại mỗi khi sửa file trong `ts/`):
    ```
    npm install
    npm run build      # biên dịch 1 lần, xuất ra public/js/

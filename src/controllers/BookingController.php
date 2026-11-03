@@ -4,6 +4,8 @@ require_once __DIR__ . '/../models/Showtime.php';
 require_once __DIR__ . '/../models/Seat.php';
 require_once __DIR__ . '/../models/Booking.php';
 require_once __DIR__ . '/../models/BookingSeat.php';
+require_once __DIR__ . '/../models/User.php';
+require_once __DIR__ . '/../core/Mailer.php';
 
 class BookingController extends Controller
 {
@@ -76,6 +78,19 @@ class BookingController extends Controller
             $this->backToSeatMap($showtime, $e->getMessage());
             return;
         }
+
+        $user = User::find(Auth::id());
+        $booking = Booking::findByCode($code);
+        $seats = $booking ? BookingSeat::allByBooking((int) $booking['id']) : [];
+        $emailSent = $user && $booking
+            ? Mailer::sendBookingConfirmation($user, $booking, $seats)
+            : false;
+        $this->flash(
+            $emailSent ? 'success' : 'error',
+            $emailSent
+                ? 'Vé xác nhận đã được gửi tới email ' . $user['email'] . '.'
+                : 'Đặt vé thành công nhưng chưa gửi được email xác nhận. Vui lòng kiểm tra cấu hình mail().'
+        );
 
         $this->redirect('/booking/success/' . $code);
     }

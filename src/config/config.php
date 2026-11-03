@@ -9,6 +9,10 @@ define('BASE_URL', '');
 
 define('APP_NAME', 'Cinema Booking');
 
+// Cấu hình mail() của PHP (SMTP thực tế được cấu hình trong php.ini hoặc mail server).
+define('MAIL_FROM_ADDRESS', getenv('MAIL_FROM_ADDRESS') ?: 'no-reply@cinema.local');
+define('MAIL_FROM_NAME', getenv('MAIL_FROM_NAME') ?: APP_NAME);
+
 // Thư mục lưu poster phim tải lên (đường dẫn tuyệt đối trên đĩa).
 define('UPLOAD_DIR', dirname(__DIR__, 2) . '/public/uploads/movies');
 // Đường dẫn public tương ứng để nhúng vào thẻ <img>.

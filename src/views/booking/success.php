@@ -2,7 +2,7 @@
     <h1>🎉 Đặt vé thành công!</h1>
     <div class="alert alert-success">
         Đơn <strong><?= htmlspecialchars($booking['booking_code']) ?></strong> đã được xác nhận.
-        Vui lòng đọc mã đơn tại quầy để nhận vé. (Thông báo xác nhận mô phỏng, không gửi email.)
+        Vui lòng đọc mã đơn tại quầy để nhận vé.
     </div>
     <dl>
         <dt>Mã đơn</dt><dd><strong><?= htmlspecialchars($booking['booking_code']) ?></strong></dd>
