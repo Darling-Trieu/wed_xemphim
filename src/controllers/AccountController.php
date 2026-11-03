@@ -23,10 +23,15 @@ class AccountController extends Controller
         Csrf::verifyRequest();
 
         $fullName = (string) $this->input('full_name');
-        $phone = $this->input('phone');
+        $phone = (string) $this->input('phone', '');
 
-        if ($fullName === '' || mb_strlen($fullName) > 100) {
+        if (!$this->validLength($fullName, 100)) {
             $this->flash('error', 'Họ tên không được để trống và tối đa 100 ký tự.');
+            $this->redirect('/account');
+            return;
+        }
+        if ($phone !== '' && !$this->validPhone($phone)) {
+            $this->flash('error', 'Số điện thoại phải gồm 10 chữ số, bắt đầu bằng 0.');
             $this->redirect('/account');
             return;
         }

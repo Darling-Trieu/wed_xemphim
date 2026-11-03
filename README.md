@@ -13,9 +13,17 @@
 
 2. **Tạo CSDL**: mở HeidiSQL (đi kèm Laragon) hoặc dùng lệnh:
    ```
-   mysql -u root < database/schema.sql
+   mysql -u root --default-character-set=utf8mb4 < database/schema.sql
    ```
    Lệnh trên tự tạo database `movie_booking`, toàn bộ bảng và dữ liệu mẫu.
+   **Lưu ý:** file này xóa database `movie_booking` cũ (nếu có) trước khi tạo lại, mọi dữ liệu đang có sẽ mất.
+
+   Dữ liệu mẫu có sẵn suất chiếu cho 7 ngày tới (mỗi phòng 6 suất / ngày). Muốn thêm suất cho
+   CSDL đang dùng mà không import lại (ví dụ vài ngày sau khi các suất mẫu đã qua), chạy:
+   ```
+   mysql -u root --default-character-set=utf8mb4 movie_booking < database/migrations/003_seed_showtimes.sql
+   ```
+   Khung giờ đã có suất được bỏ qua nên chạy lại nhiều lần không bị trùng lịch.
 
 3. **Cấu hình kết nối CSDL** tại `src/config/database.php` nếu MySQL của bạn khác mặc định Laragon (user `root`, không mật khẩu, cổng `3306`).
 

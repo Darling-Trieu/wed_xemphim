@@ -48,6 +48,9 @@ class Booking extends Model
         if ($showtime['status'] === 'cancelled') {
             throw new BookingException('Suất chiếu đã bị hủy.');
         }
+        if (Showtime::isVenueInactive($showtime)) {
+            throw new BookingException('Suất chiếu không còn mở bán.');
+        }
         if (Showtime::isSaleClosed($showtime)) {
             throw new BookingException('Suất chiếu đã đóng bán.');
         }

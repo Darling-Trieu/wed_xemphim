@@ -10,7 +10,10 @@
     </a>
     <div class="movie-card-info">
         <h3><a href="<?= BASE_URL ?>/movies/<?= (int) $movie['id'] ?>"><?= htmlspecialchars($movie['title']) ?></a></h3>
-        <div class="movie-meta"><?= (int) $movie['duration_minutes'] ?> phút</div>
+        <?php if ($movie['status'] === 'coming_soon' && $movie['release_date']): ?>
+            <div class="movie-card-release">Ngày khởi chiếu: <?= htmlspecialchars(date('d/m/Y', strtotime($movie['release_date']))) ?></div>
+        <?php endif; ?>
+        <div class="movie-meta"><?= (int) $movie['duration_minutes'] ?> phút &middot; <?= htmlspecialchars($movie['age_rating']) ?></div>
     </div>
     <?php if ($movie['status'] === 'now_showing'): ?>
         <a class="btn-book" href="<?= BASE_URL ?>/showtimes?movie_id=<?= (int) $movie['id'] ?>">Đặt ngay</a>

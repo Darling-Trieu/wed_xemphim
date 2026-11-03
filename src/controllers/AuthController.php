@@ -18,9 +18,9 @@ class AuthController extends Controller
     {
         Csrf::verifyRequest();
 
-        $fullName = $this->input('full_name');
+        $fullName = (string) $this->input('full_name', '');
         $email = strtolower((string) $this->input('email'));
-        $phone = $this->input('phone');
+        $phone = (string) $this->input('phone', '');
         $password = (string) $this->input('password');
         $passwordConfirm = (string) $this->input('password_confirm');
 
@@ -28,8 +28,11 @@ class AuthController extends Controller
         if ($fullName === '' || $email === '' || $password === '') {
             $errors[] = 'Vui lòng nhập đầy đủ thông tin bắt buộc.';
         }
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL) || mb_strlen($email) > 150) {
             $errors[] = 'Email không hợp lệ.';
+        }
+        if ($phone !== '' && !$this->validPhone($phone)) {
+            $errors[] = 'Số điện thoại phải gồm 10 chữ số, bắt đầu bằng 0.';
         }
         if (strlen($password) < 6) {
             $errors[] = 'Mật khẩu phải có ít nhất 6 ký tự.';
@@ -37,7 +40,7 @@ class AuthController extends Controller
         if ($password !== $passwordConfirm) {
             $errors[] = 'Xác nhận mật khẩu không khớp.';
         }
-        if (mb_strlen((string) $fullName) > 100) {
+        if (mb_strlen($fullName) > 100) {
             $errors[] = 'Họ tên tối đa 100 ký tự.';
         }
         if (empty($errors) && (User::findByEmail($email) || ($phone && User::findByPhone($phone)))) {
@@ -84,7 +87,9 @@ class AuthController extends Controller
         $password = (string) $this->input('password');
 
         if ($login === '' || $password === '') {
-            $this->loginFailed($login, 'Cần nhập các trường bắt buộc', null, false);
+            // Ô bỏ trống được tô đỏ kèm hướng dẫn (trạng thái "Nhập thiếu" trên Figma)
+            $invalid = array_keys(array_filter(['login' => $login === '', 'password' => $password === '']));
+            $this->loginFailed($login, 'Cần nhập các trường bắt buộc', null, false, $invalid);
             return;
         }
 
@@ -124,7 +129,7 @@ class AuthController extends Controller
         $this->redirect('/');
     }
 
-    private function loginFailed(string $login, string $message, ?array $user, bool $log): void
+    private function loginFailed(string $login, string $message, ?array $user, bool $log, array $invalid = []): void
     {
         if ($log) {
             AuditLog::write('login_failed', 'auth', $user['id'] ?? null, null,
@@ -133,6 +138,7 @@ class AuthController extends Controller
         $this->bareView('auth/login', [
             'pageTitle' => 'Đăng nhập',
             'errors'    => [$message],
+            'invalid'   => $invalid,
             'old'       => ['login' => $login],
         ]);
     }

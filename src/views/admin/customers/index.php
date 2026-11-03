@@ -1,4 +1,4 @@
-<h1>Quản lý tài khoản</h1>
+<h1>Quản lý khách hàng</h1>
 
 <?php if ($error): ?>
     <div class="alert alert-error"><?= htmlspecialchars($error) ?></div>
@@ -7,7 +7,7 @@
 <form class="filter-bar" method="get" action="<?= BASE_URL ?>/admin/customers" style="margin-bottom:16px;">
     <input class="form-control" type="search" name="q" maxlength="100" placeholder="Tìm theo email hoặc số điện thoại"
            value="<?= htmlspecialchars($keyword) ?>" style="max-width:320px;">
-    <button type="submit" class="btn btn-small">Tìm</button>
+    <button type="submit" class="btn btn-small btn-secondary">Tìm</button>
     <?php if ($keyword !== ''): ?>
         <a class="btn btn-small btn-secondary" href="<?= BASE_URL ?>/admin/customers">Bỏ lọc</a>
     <?php endif; ?>
@@ -34,7 +34,7 @@
                         <form method="post" action="<?= BASE_URL ?>/admin/customers/<?= (int) $c['id'] ?>/toggle"
                               onsubmit="return confirm('<?= $c['status'] === 'active' ? 'Khóa' : 'Mở khóa' ?> tài khoản này?');">
                             <?= Csrf::field() ?>
-                            <button type="submit" class="btn btn-small <?= $c['status'] === 'active' ? 'btn-danger' : '' ?>">
+                            <button type="submit" class="btn btn-small <?= $c['status'] === 'active' ? 'btn-danger' : 'btn-secondary' ?>">
                                 <?= $c['status'] === 'active' ? 'Khóa tài khoản' : 'Mở khóa' ?>
                             </button>
                         </form>

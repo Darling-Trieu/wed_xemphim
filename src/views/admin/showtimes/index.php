@@ -6,7 +6,7 @@
 <div class="table-responsive">
 <table class="data-table">
     <thead>
-        <tr><th>Phim</th><th>Rạp / Phòng</th><th>Ngày</th><th>Giờ chiếu (chiếm phòng)</th><th class="num">Giá vé</th><th class="num">Ghế đã bán</th><th>Trạng thái</th><th></th></tr>
+        <tr><th>Phim</th><th>Rạp / Phòng</th><th>Ngày</th><th>Giờ chiếu</th><th class="num">Giá vé</th><th class="num">Ghế đã bán</th><th>Trạng thái</th><th></th></tr>
     </thead>
     <tbody>
         <?php foreach ($showtimes as $st): ?>
@@ -25,7 +25,7 @@
                     <?php if ($st['status'] === 'active' && (int) $st['sold_count'] === 0): ?>
                         <form method="post" action="<?= BASE_URL ?>/admin/showtimes/<?= (int) $st['id'] ?>/cancel" onsubmit="return confirm('Hủy suất chiếu này? Suất sẽ không còn mở bán.');">
                             <?= Csrf::field() ?>
-                            <button type="submit" class="btn btn-small btn-danger">Hủy suất</button>
+                            <button type="submit" class="btn btn-small btn-danger">Hủy</button>
                         </form>
                     <?php endif; ?>
                 </td>
