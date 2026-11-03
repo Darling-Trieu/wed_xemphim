@@ -54,8 +54,6 @@ $needAge = Booking::requiresAgeConfirm($showtime['age_rating']);
             </label>
             <div class="seat-message" id="age-message" role="alert"></div>
         <?php endif; ?>
-
-        <p class="movie-meta">Thanh toán mô phỏng: đơn được xác nhận ngay khi bấm "Xác nhận".</p>
         <button type="submit" class="btn">Xác nhận</button>
         <a class="btn btn-secondary" href="<?= BASE_URL ?>/showtimes/<?= (int) $showtime['id'] ?>/seats">&larr; Quay lại</a>
     </form>

@@ -474,11 +474,11 @@ SELECT id, total_amount, 'success', created_at FROM bookings WHERE id = @bk_done
 -- SUẤT CHIẾU 7 NGÀY TỚI (giống database/migrations/003_seed_showtimes.sql)
 -- Mỗi phòng 6 suất / ngày: 09:00, 11:30, 14:00, 16:30, 19:00, 21:30, phim Đang chiếu xoay vòng.
 -- Giá: sáng 70.000đ, chiều 80.000đ, tối 95.000đ; thứ 7 / chủ nhật +10.000đ.
--- Khung giờ đã có suất trong phòng (BR02) được bỏ qua.
+-- Khung giờ đã có suất trong phòng (BR02) được bỏ qua; hôm nay chỉ lấy khung còn mở bán.
 -- =====================================================================
 INSERT INTO showtimes (movie_id, room_id, show_date, start_time, end_time, base_price, status)
 WITH RECURSIVE days AS (
-    SELECT 1 AS d
+    SELECT 0 AS d
     UNION ALL SELECT d + 1 FROM days WHERE d < 7
 ),
 slots AS (
@@ -517,7 +517,8 @@ SELECT mv.id, plan.room_id, plan.show_date, TIME(plan.starts_at),
        'active'
 FROM plan
 INNER JOIN mv ON mv.rn = plan.k MOD mv.cnt
-WHERE NOT EXISTS (
+WHERE plan.starts_at > NOW() + INTERVAL 15 MINUTE
+  AND NOT EXISTS (
     SELECT 1 FROM showtimes st
     WHERE st.room_id = plan.room_id AND st.status = 'active'
       AND TIMESTAMP(st.show_date, st.start_time) < plan.starts_at + INTERVAL (mv.duration_minutes + 15) MINUTE
