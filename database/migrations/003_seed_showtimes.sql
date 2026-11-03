@@ -1,5 +1,6 @@
 -- =====================================================================
--- Migration 003: thêm suất chiếu mẫu cho 7 ngày tới (ngày mai -> +7 ngày) để test nhiều ngày.
+-- Migration 003: thêm suất chiếu mẫu cho 7 ngày tới (hôm nay -> +7 ngày) để test nhiều ngày.
+-- Hôm nay chỉ lấy các khung giờ còn mở bán (bắt đầu sau ít nhất 15 phút nữa).
 -- Mỗi phòng đang hoạt động có 6 suất / ngày: 09:00, 11:30, 14:00, 16:30, 19:00, 21:30;
 -- phim Đang chiếu được xoay vòng giữa các phòng / khung giờ.
 -- Giá: sáng 70.000đ, chiều 80.000đ, tối 95.000đ; thứ 7 / chủ nhật +10.000đ.
@@ -10,7 +11,7 @@
 
 INSERT INTO showtimes (movie_id, room_id, show_date, start_time, end_time, base_price, status)
 WITH RECURSIVE days AS (
-    SELECT 1 AS d
+    SELECT 0 AS d
     UNION ALL SELECT d + 1 FROM days WHERE d < 7
 ),
 slots AS (
@@ -49,7 +50,8 @@ SELECT mv.id, plan.room_id, plan.show_date, TIME(plan.starts_at),
        'active'
 FROM plan
 INNER JOIN mv ON mv.rn = plan.k MOD mv.cnt
-WHERE NOT EXISTS (
+WHERE plan.starts_at > NOW() + INTERVAL 15 MINUTE
+  AND NOT EXISTS (
     SELECT 1 FROM showtimes st
     WHERE st.room_id = plan.room_id AND st.status = 'active'
       AND TIMESTAMP(st.show_date, st.start_time) < plan.starts_at + INTERVAL (mv.duration_minutes + 15) MINUTE
