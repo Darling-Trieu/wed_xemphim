@@ -25,6 +25,11 @@
    ```
    Khung giờ đã có suất được bỏ qua nên chạy lại nhiều lần không bị trùng lịch.
 
+   Nếu CSDL đã tồn tại, chạy thêm migration giữ ghế tạm:
+   ```
+   mysql -u root --default-character-set=utf8mb4 movie_booking < database/migrations/004_create_seat_holds.sql
+   ```
+
 3. **Cấu hình kết nối CSDL** tại `src/config/database.php` nếu MySQL của bạn khác mặc định Laragon (user `root`, không mật khẩu, cổng `3306`).
 
 4. **Cấu hình gửi email**: hệ thống dùng hàm `mail()` của PHP để gửi email xác nhận sau khi đặt vé. Cấu hình SMTP trong `php.ini` (với Laragon, thường là `sendmail_path`) và có thể đặt biến môi trường `MAIL_FROM_ADDRESS`, `MAIL_FROM_NAME`.

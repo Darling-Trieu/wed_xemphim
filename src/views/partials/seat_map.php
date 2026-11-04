@@ -30,6 +30,7 @@ $legendStyle = ['VIP' => 'border-color:#f5b301;', 'Đôi' => 'border-color:#a855
                 <?= number_format((int) $showtime['base_price'] + (int) $type['surcharge'], 0, ',', '.') ?>đ</span>
         <?php endforeach; ?>
         <span><span class="legend-box" style="background:#2a2a2e;"></span> Đã bán</span>
+        <span><span class="legend-box" style="background:#6b4f00;border-color:#b8860b;"></span> Đang được giữ</span>
         <span><span class="legend-box inactive"></span> Ngừng sử dụng</span>
         <span><span class="legend-box" style="background:#e50914;border-color:#e50914;"></span> Đang chọn</span>
     </div>
@@ -51,7 +52,7 @@ $legendStyle = ['VIP' => 'border-color:#f5b301;', 'Đôi' => 'border-color:#a855
                 <?= Csrf::field() ?>
                 <input type="hidden" name="seat_ids" id="seat-ids-input" value="">
         <?php else: ?>
-            <?php // Khách chưa đăng nhập: ghế đang chọn được lưu ở sessionStorage, đăng nhập xong quay lại đúng suất này ?>
+            <?php // Khách chưa đăng nhập vẫn giữ ghế theo session; lựa chọn được khôi phục sau khi đăng nhập. ?>
             <form id="booking-form" method="get" action="<?= BASE_URL ?>/booking/<?= (int) $showtime['id'] ?>">
         <?php endif; ?>
             <div class="booking-summary">

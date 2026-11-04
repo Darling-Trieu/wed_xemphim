@@ -9,6 +9,7 @@ require_once dirname(__DIR__) . '/src/models/Showtime.php';
 require_once dirname(__DIR__) . '/src/models/Seat.php';
 require_once dirname(__DIR__) . '/src/models/BookingSeat.php';
 require_once dirname(__DIR__) . '/src/models/Booking.php';
+require_once dirname(__DIR__) . '/src/models/SeatHold.php';
 
 ErrorHandler::register(true);
 Auth::syncWithDatabase();
@@ -23,6 +24,7 @@ function apiError(string $message, int $status = 400): void
 }
 
 $action = $_GET['action'] ?? '';
+$sessionId = session_id();
 
 switch ($action) {
     case 'seats':
@@ -34,18 +36,22 @@ switch ($action) {
 
         $seats = Seat::allByRoom((int) $showtime['room_id']);
         $bookedIds = BookingSeat::bookedSeatIds($showtimeId);
+        $heldSeats = SeatHold::activeByShowtime($showtimeId, $sessionId);
 
         // Giá chỉ để hiển thị tạm tính; khi đặt vé server tính lại (BR05)
-        $result = array_map(function ($seat) use ($bookedIds, $showtime) {
+        $result = array_map(function ($seat) use ($bookedIds, $heldSeats, $showtime) {
+            $seatId = (int) $seat['id'];
             return [
-                'id'         => (int) $seat['id'],
+                'id'         => $seatId,
                 'row'        => $seat['seat_row'],
                 'number'     => (int) $seat['seat_number'],
                 'type'       => $seat['seat_type_name'],
                 'price'      => (int) $showtime['base_price'] + (int) $seat['surcharge'],
                 'is_active'  => $seat['status'] === 'active',
                 'is_aisle'   => $seat['status'] === 'aisle',
-                'is_booked'  => in_array((int) $seat['id'], $bookedIds, true),
+                'is_booked'  => in_array($seatId, $bookedIds, true),
+                'is_held'    => array_key_exists($seatId, $heldSeats),
+                'held_by_me' => $heldSeats[$seatId] ?? false,
             ];
         }, $seats);
 
@@ -61,6 +67,40 @@ switch ($action) {
             ],
             'seats' => $result,
         ], JSON_UNESCAPED_UNICODE);
+        break;
+
+    case 'hold_seat':
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            apiError('Phương thức không hợp lệ.', 405);
+        }
+        $showtimeId = (int) ($_POST['showtime_id'] ?? 0);
+        $seatId = (int) ($_POST['seat_id'] ?? 0);
+        $showtime = $showtimeId ? Showtime::find($showtimeId) : null;
+        if (!$showtime || $seatId <= 0) {
+            apiError('Dữ liệu giữ ghế không hợp lệ.');
+        }
+        if (in_array($seatId, BookingSeat::bookedSeatIds($showtimeId), true)) {
+            echo json_encode(['held' => false], JSON_UNESCAPED_UNICODE);
+            break;
+        }
+        $seat = Seat::find($seatId);
+        if (!$seat || (int) $seat['room_id'] !== (int) $showtime['room_id'] || $seat['status'] !== 'active') {
+            apiError('Ghế không thuộc phòng chiếu của suất này.');
+        }
+        $held = SeatHold::hold($showtimeId, $seatId, $sessionId);
+        echo json_encode(['held' => $held], JSON_UNESCAPED_UNICODE);
+        break;
+
+    case 'release_seat':
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            apiError('Phương thức không hợp lệ.', 405);
+        }
+        SeatHold::release(
+            (int) ($_POST['showtime_id'] ?? 0),
+            (int) ($_POST['seat_id'] ?? 0),
+            $sessionId
+        );
+        echo json_encode(['released' => true], JSON_UNESCAPED_UNICODE);
         break;
 
     case 'revenue_chart':

@@ -6,6 +6,7 @@ require_once __DIR__ . '/../models/Booking.php';
 require_once __DIR__ . '/../models/BookingSeat.php';
 require_once __DIR__ . '/../models/User.php';
 require_once __DIR__ . '/../core/Mailer.php';
+require_once __DIR__ . '/../models/SeatHold.php';
 
 class BookingController extends Controller
 {
@@ -62,6 +63,7 @@ class BookingController extends Controller
         $ageConfirmed = $this->input('age_confirmed') === '1';
 
         try {
+            SeatHold::assertOwned((int) $showtime['id'], $seatIds, session_id());
             $code = Booking::create(Auth::id(), (int) $showtime['id'], $seatIds, $ageConfirmed);
         } catch (BookingAgeException $e) {
             // Thiếu xác nhận độ tuổi: ở lại màn hình xác nhận với đúng các ghế đã chọn
@@ -91,6 +93,7 @@ class BookingController extends Controller
                 ? 'Vé xác nhận đã được gửi tới email ' . $user['email'] . '.'
                 : 'Đặt vé thành công nhưng chưa gửi được email xác nhận. Vui lòng kiểm tra cấu hình mail().'
         );
+        SeatHold::releaseSession((int) $showtime['id'], session_id());
 
         $this->redirect('/booking/success/' . $code);
     }

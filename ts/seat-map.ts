@@ -7,6 +7,8 @@ interface SeatDto {
     is_active: boolean;
     is_aisle: boolean;
     is_booked: boolean;
+    is_held: boolean;
+    held_by_me: boolean;
 }
 
 interface SeatsResponse {
@@ -64,10 +66,28 @@ document.addEventListener('DOMContentLoaded', () => {
             restoreSelection(state);
             renderSeats(container, data.seats, state);
             updateSummary(state);
+            window.setInterval(() => refreshSeats(container, apiUrl, state), 5000);
         })
         .catch(() => {
             container.innerHTML = '<p>Không tải được sơ đồ ghế, vui lòng thử lại.</p>';
         });
+
+        function refreshSeats(container: HTMLElement, apiUrl: string, state: SeatMapState): void {
+            fetch(`${apiUrl}?action=seats&showtime_id=${encodeURIComponent(state.storageKey.replace('seat-selection-', ''))}`)
+                .then((res) => res.ok ? res.json() as Promise<SeatsResponse> : Promise.reject(new Error('Không tải được trạng thái ghế')))
+                .then((data) => {
+                    data.seats.forEach((seat) => state.seatById.set(seat.id, seat));
+                    state.selected.forEach((id) => {
+                        if (!isSelectable(state.seatById.get(id))) {
+                            state.selected.delete(id);
+                        }
+                    });
+                    renderSeats(container, data.seats, state);
+                    saveSelection(state);
+                    updateSummary(state);
+                })
+                .catch(() => undefined);
+        }
 });
 
 function seatTypeClass(type: string): string {
@@ -81,7 +101,8 @@ function formatMoney(amount: number): string {
 }
 
 function isSelectable(seat: SeatDto | undefined): boolean {
-    return !!seat && seat.is_active && !seat.is_aisle && !seat.is_booked;
+    return !!seat && seat.is_active && !seat.is_aisle && !seat.is_booked
+        && (!seat.is_held || seat.held_by_me);
 }
 
 /**
@@ -166,6 +187,9 @@ function renderSeats(container: HTMLElement, seats: SeatDto[], state: SeatMapSta
                     } else if (seat.is_booked) {
                         seatEl.classList.add('booked');
                         seatEl.title = `${rowLabel}${seat.number} - Đã bán`;
+                    } else if (seat.is_held && !seat.held_by_me) {
+                        seatEl.classList.add('held');
+                        seatEl.title = `${rowLabel}${seat.number} - Đang được khách khác giữ`;
                     } else {
                         seatEl.title = `${seat.type} - ${formatMoney(seat.price)}`;
                         if (state.selected.has(seat.id)) {
@@ -199,6 +223,7 @@ function toggleSeat(seatId: number, seatEl: HTMLElement, state: SeatMapState): v
     if (state.selected.has(seatId)) {
         state.selected.delete(seatId);
         seatEl.classList.remove('selected');
+        updateSeatHold('release_seat', seatId, state);
     } else {
         if (state.selected.size >= state.maxSeats) {
             if (message) {
@@ -208,6 +233,33 @@ function toggleSeat(seatId: number, seatEl: HTMLElement, state: SeatMapState): v
         }
         state.selected.add(seatId);
         seatEl.classList.add('selected');
+        updateSeatHold('hold_seat', seatId, state).then((held) => {
+            if (held) {
+                return;
+            }
+            state.selected.delete(seatId);
+            seatEl.classList.remove('selected');
+            seatEl.classList.add('held');
+            seatEl.title = 'Đang được khách khác giữ';
+            updateSummary(state);
+            if (message) {
+                message.textContent = 'Ghế vừa được người khác giữ, vui lòng chọn ghế khác.';
+            }
+        });
+    }
+
+    function updateSeatHold(action: string, seatId: number, state: SeatMapState): Promise<boolean> {
+        const formData = new URLSearchParams({
+            showtime_id: state.storageKey.replace('seat-selection-', ''),
+            seat_id: String(seatId),
+        });
+        return fetch(`${document.getElementById('seat-map')?.getAttribute('data-api-url') || '/api.php'}?action=${action}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: formData.toString(),
+        }).then((res) => res.ok ? res.json() : Promise.reject(new Error('Không giữ được ghế')))
+            .then((data: { held?: boolean }) => action === 'release_seat' || data.held === true)
+            .catch(() => false);
     }
 
     if (message) {

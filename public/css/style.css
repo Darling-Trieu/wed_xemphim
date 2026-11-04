@@ -565,10 +565,11 @@ textarea.form-control { resize: vertical; min-height: 100px; }
     flex-shrink: 0;
     transition: transform 0.1s ease, background 0.1s ease;
 }
-.seat:hover:not(.booked):not(.inactive) { border-color: var(--primary); color: var(--text); }
+.seat:hover:not(.booked):not(.held):not(.inactive) { border-color: var(--primary); color: var(--text); }
 .seat.type-vip { border-color: #f5b301; color: #f5b301; }
 .seat.type-doi { border-color: #a855f7; color: #c084fc; }
 .seat.booked { background: #2a2a2e; color: #55555c; cursor: not-allowed; border-color: var(--border); }
+.seat.held { background: #6b4f00; color: #f8d477; cursor: not-allowed; border-color: #b8860b; }
 .seat.selected { background: var(--primary); border-color: var(--primary); color: #fff; transform: scale(1.05); }
 .seat.inactive {
     cursor: not-allowed;

@@ -176,6 +176,20 @@ CREATE TABLE showtime_seats (
     FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
+-- Ghế đang được khách giữ tạm trước khi xác nhận đặt vé.
+CREATE TABLE seat_holds (
+    id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    showtime_id INT UNSIGNED NOT NULL,
+    seat_id     INT UNSIGNED NOT NULL,
+    session_id  VARCHAR(128) NOT NULL,
+    expires_at  DATETIME NOT NULL,
+    created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_active_seat_hold (showtime_id, seat_id),
+    INDEX idx_seat_hold_expiry (expires_at),
+    FOREIGN KEY (showtime_id) REFERENCES showtimes(id) ON DELETE CASCADE,
+    FOREIGN KEY (seat_id) REFERENCES seats(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
 -- Thanh toán mô phỏng: success (Thành công) -> refunded (Đã hoàn)
 CREATE TABLE payments (
     id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
