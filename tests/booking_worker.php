@@ -7,7 +7,10 @@
 
 [$_, $userId, $showtimeId, $seatId, $startAt] = $argv;
 
-putenv('DB_NAME=' . (getenv('DB_NAME') ?: 'movie_booking_test'));
+if (getenv('DB_NAME') && getenv('DB_NAME') !== 'movie_booking_test') {
+    throw new RuntimeException('Worker chỉ được dùng movie_booking_test.');
+}
+putenv('DB_NAME=movie_booking_test');
 $root = dirname(__DIR__);
 require $root . '/src/config/config.php';
 require $root . '/src/core/Database.php';

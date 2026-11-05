@@ -70,6 +70,21 @@ abstract class Controller
         return is_string($phone) && preg_match('/^0\d{9}$/', $phone) === 1;
     }
 
+    /** Không trim mật khẩu: khoảng trắng là một phần của thông tin xác thực. */
+    protected function passwordInput(string $key): string
+    {
+        return isset($_POST[$key]) && is_string($_POST[$key]) ? $_POST[$key] : '';
+    }
+
+    protected function validPassword(string $password): bool
+    {
+        // bcrypt chỉ xét 72 byte; không chấp nhận đầu vào bị cắt ngầm hay chứa NUL.
+        return mb_strlen($password) >= 8 && strlen($password) <= 72
+            && !str_contains($password, "\0")
+            && preg_match('/\p{L}/u', $password) === 1
+            && preg_match('/[0-9]/', $password) === 1;
+    }
+
     protected function flash(string $key, ?string $message = null)
     {
         if ($message !== null) {

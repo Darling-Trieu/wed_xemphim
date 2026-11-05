@@ -25,6 +25,7 @@ $router->post('/logout', 'AuthController@logout');
 
 $router->get('/account', 'AccountController@profile');
 $router->post('/account', 'AccountController@update');
+$router->post('/account/password', 'AccountController@changePassword');
 $router->get('/account/bookings', 'AccountController@bookings');
 $router->get('/account/bookings/{code}', 'AccountController@bookingDetail');
 
