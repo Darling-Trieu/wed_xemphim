@@ -24,7 +24,9 @@ class BookingController extends Controller
     public function confirm(string $showtimeId): void
     {
         Auth::requireLogin();
-        Csrf::verifyRequest();
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            Csrf::verifyRequest();
+        }
 
         $showtime = Showtime::find((int) $showtimeId);
         if (!$showtime) {
@@ -95,7 +97,7 @@ class BookingController extends Controller
         );
         SeatHold::releaseSession((int) $showtime['id'], session_id());
 
-        $this->redirect('/booking/success/' . $code);
+        $this->redirect('/booking/success/' . $code, 303);
     }
 
     public function success(string $code): void

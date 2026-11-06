@@ -13,6 +13,7 @@ $router->get('/showtimes', 'ShowtimeController@search');
 $router->get('/showtimes/{id}/seats', 'ShowtimeController@seats');
 
 $router->get('/booking/{showtimeId}', 'BookingController@create');
+$router->get('/booking/{showtimeId}/confirm', 'BookingController@confirm');
 $router->post('/booking/{showtimeId}/confirm', 'BookingController@confirm');
 $router->post('/booking/{showtimeId}', 'BookingController@store');
 $router->get('/booking/success/{code}', 'BookingController@success');

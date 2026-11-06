@@ -37,8 +37,9 @@ abstract class Controller
         require dirname(__DIR__) . '/views/' . $view . '.php';
     }
 
-    protected function redirect(string $path): void
+    protected function redirect(string $path, int $status = 302): void
     {
+        http_response_code($status);
         header('Location: ' . BASE_URL . $path);
         exit;
     }

@@ -49,8 +49,7 @@ $legendStyle = ['VIP' => 'border-color:#f5b301;', 'Đôi' => 'border-color:#a855
     <?php if (!$saleClosed): ?>
         <div class="seat-message" id="seat-message" role="alert"></div>
         <?php if (Auth::check()): ?>
-            <form id="booking-form" method="post" action="<?= BASE_URL ?>/booking/<?= (int) $showtime['id'] ?>/confirm">
-                <?= Csrf::field() ?>
+            <form id="booking-form" method="get" action="<?= BASE_URL ?>/booking/<?= (int) $showtime['id'] ?>/confirm">
                 <input type="hidden" name="seat_ids" id="seat-ids-input" value="">
         <?php else: ?>
             <?php // Khách chưa đăng nhập vẫn giữ ghế theo session; lựa chọn được khôi phục sau khi đăng nhập. ?>
