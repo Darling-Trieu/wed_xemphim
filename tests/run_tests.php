@@ -174,6 +174,22 @@ function makeShowtime(int $movieId, int $roomId, int $startTs, int $basePrice = 
     return (int) db()->lastInsertId();
 }
 
+/** Gọi API giữ / nhả ghế như trình duyệt: CSRF token lấy từ data-csrf của sơ đồ ghế. */
+function holdSeat(Client $c, int $showtimeId, int $seatId, string $action = 'hold_seat', bool $withCsrf = true): array
+{
+    $data = ['showtime_id' => $showtimeId, 'seat_id' => $seatId];
+    if ($withCsrf) {
+        $page = $c->get("/showtimes/$showtimeId/seats")['body'];
+        $data['csrf_token'] = preg_match('/data-csrf="([^"]+)"/', $page, $m) ? $m[1] : '';
+    }
+    return $c->post("/api.php?action=$action", $data);
+}
+
+function holdOk(array $response): bool
+{
+    return (json_decode($response['body'], true)['held'] ?? false) === true;
+}
+
 /** Đặt vé qua giao diện web: màn hình xác nhận -> xác nhận. Trả về response của bước xác nhận. */
 function book(Client $c, int $showtimeId, array $seatIds, array $extra = ['age_confirmed' => '1']): array
 {
@@ -186,7 +202,7 @@ function book(Client $c, int $showtimeId, array $seatIds, array $extra = ['age_c
         return $confirm;
     }
     foreach ($seatIds as $seatId) {
-        $hold = $c->post('/api.php?action=hold_seat', ['showtime_id' => $showtimeId, 'seat_id' => $seatId]);
+        $hold = holdSeat($c, $showtimeId, $seatId, 'hold_seat');
         if (!(json_decode($hold['body'], true)['held'] ?? false)) {
             throw new RuntimeException("Không giữ được ghế $seatId bằng session của client kiểm thử.");
         }
@@ -274,19 +290,46 @@ $r = $userA->post("/booking/$holdShowtime", $holdData);
 check('hold', 'Không giữ ghế: không được tạo đơn', $r['status'] === 302
     && str_contains(flashError($userA->follow($r)['body']), 'hết thời gian giữ')
     && (int) scalar('SELECT COUNT(*) FROM bookings') === $beforeHolds);
-$userB->post('/api.php?action=hold_seat', ['showtime_id' => $holdShowtime, 'seat_id' => $holdSeat]);
+holdSeat($userB, $holdShowtime, $holdSeat, 'hold_seat');
 $r = $userA->post("/booking/$holdShowtime", $holdData);
 check('hold', 'Hold của session khác: không được tạo đơn', $r['status'] === 302
     && str_contains(flashError($userA->follow($r)['body']), 'hết thời gian giữ')
     && (int) scalar('SELECT COUNT(*) FROM bookings') === $beforeHolds);
-$userB->post('/api.php?action=release_seat', ['showtime_id' => $holdShowtime, 'seat_id' => $holdSeat]);
-$userA->post('/api.php?action=hold_seat', ['showtime_id' => $holdShowtime, 'seat_id' => $holdSeat]);
+holdSeat($userB, $holdShowtime, $holdSeat, 'release_seat');
+holdSeat($userA, $holdShowtime, $holdSeat, 'hold_seat');
 db()->prepare('UPDATE seat_holds SET expires_at=DATE_SUB(NOW(), INTERVAL 1 SECOND) WHERE showtime_id=?')->execute([$holdShowtime]);
 $r = $userA->post("/booking/$holdShowtime", $holdData);
 check('hold', 'Hold hết hạn: không được tạo đơn', $r['status'] === 302
     && str_contains(flashError($userA->follow($r)['body']), 'hết thời gian giữ')
     && (int) scalar('SELECT COUNT(*) FROM bookings') === $beforeHolds);
 check('hold', 'Giữ lại đúng session thì đặt được', bookingCodeFrom(book($userA, $holdShowtime, [$holdSeat])) !== null);
+
+$seatX = seatId(1, 'B1');
+$r = holdSeat($userA, $holdShowtime, $seatX, 'hold_seat', false);
+check('hold', 'API giữ ghế không có CSRF token -> 419, không giữ ghế', $r['status'] === 419
+    && (int) scalar('SELECT COUNT(*) FROM seat_holds WHERE showtime_id = ? AND seat_id = ?', [$holdShowtime, $seatX]) === 0);
+
+$greedy = new Client($A);
+$heldCount = 0;
+foreach (['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'C8', 'D1'] as $label) {
+    $last = holdSeat($greedy, $holdShowtime, seatId(1, $label));
+    $heldCount += holdOk($last) ? 1 : 0;
+}
+check('hold', 'Một phiên chỉ giữ tối đa 8 ghế / suất (ghế thứ 9 bị từ chối kèm lý do)', $heldCount === 8
+    && str_contains(json_decode($last['body'], true)['error'] ?? '', 'tối đa 8'), "giữ được $heldCount ghế");
+$greedy->login('huy.pham@example.com', 'user123');
+$greedy->post('/logout', ['csrf_token' => $greedy->csrf('/account')]);
+check('hold', 'Đăng xuất -> nhả toàn bộ ghế đang giữ', (int) scalar('SELECT COUNT(*) FROM seat_holds WHERE showtime_id = ?', [$holdShowtime]) === 0);
+
+$guestHold = new Client($A);
+$guestSeat = seatId(1, 'D5');
+check('hold', 'Khách chưa đăng nhập giữ được ghế', holdOk(holdSeat($guestHold, $holdShowtime, $guestSeat)));
+$guestHold->login('bao.dang@example.com', 'user123');
+$seatsJson = json_decode($guestHold->get("/api.php?action=seats&showtime_id=$holdShowtime")['body'], true);
+$mine = array_values(array_filter($seatsJson['seats'], fn ($s) => $s['id'] === $guestSeat))[0] ?? [];
+check('hold', 'Đăng nhập xong: ghế vẫn là của mình (giữ ghế đi theo session mới)', ($mine['held_by_me'] ?? false) === true);
+$r = $guestHold->post("/booking/$holdShowtime", ['csrf_token' => $guestHold->csrf('/account'), 'seat_ids' => (string) $guestSeat]);
+check('hold', 'Khách chọn ghế -> đăng nhập -> đặt được đúng ghế đó', bookingCodeFrom($r) !== null, flashError($guestHold->follow($r)['body']));
 
 // ---------------------------------------------------------------- Ca 1: đặt cùng ghế đồng thời
 section('Ca 1 - Hai phiên đặt cùng 1 ghế gần như đồng thời (BR01)');
@@ -295,8 +338,8 @@ $st1 = makeShowtime($moviePG, 1, strtotime('+2 days 10:00'));
 $seat = seatId(1, 'B5');
 $tokA = $userA->csrf("/showtimes/$st1/seats");
 $tokB = $userB->csrf("/showtimes/$st1/seats");
-$holdA = $userA->post('/api.php?action=hold_seat', ['showtime_id' => $st1, 'seat_id' => $seat]);
-$holdB = $userB->post('/api.php?action=hold_seat', ['showtime_id' => $st1, 'seat_id' => $seat]);
+$holdA = holdSeat($userA, $st1, $seat, 'hold_seat');
+$holdB = holdSeat($userB, $st1, $seat, 'hold_seat');
 check('1', 'Session A giữ ghế; session B không lấy được ghế đang giữ',
     (json_decode($holdA['body'], true)['held'] ?? false) === true
     && (json_decode($holdB['body'], true)['held'] ?? true) === false);
@@ -705,6 +748,79 @@ check('19', 'Đăng ký với SĐT sai định dạng -> báo lỗi, không tạ
 $r = $guest->post('/register', ['csrf_token' => $token, 'email' => 'thieu.ten@example.com', 'password' => 'abc123', 'password_confirm' => 'abc123']);
 check('19', 'Đăng ký thiếu trường họ tên -> báo lỗi, không ra 500', $r['status'] === 200
     && str_contains($r['body'], 'Vui lòng nhập đầy đủ'), 'status ' . $r['status']);
+
+// ---------------------------------------------------------------- Ca 20: FR09
+section('Ca 20 - Loại ghế & phụ thu, sửa phòng, ghế Ngừng sử dụng / Lối đi (FR09, UC11)');
+
+$token = $admin->csrf('/admin/seat-types');
+$admin->post('/admin/seat-types', ['csrf_token' => $token, 'name' => 'Sweetbox', 'surcharge' => '30000']);
+$sweetbox = (int) scalar("SELECT id FROM seat_types WHERE name = 'Sweetbox'");
+check('20', 'Thêm loại ghế mới kèm phụ thu', $sweetbox > 0 && (int) scalar('SELECT surcharge FROM seat_types WHERE id = ?', [$sweetbox]) === 30000);
+$r = $admin->post('/admin/seat-types', ['csrf_token' => $token, 'name' => 'Sweetbox', 'surcharge' => '1000']);
+check('20', 'Tên loại ghế trùng -> báo lỗi', str_contains(flashError($admin->follow($r)['body']), 'đã tồn tại'));
+$r = $admin->post('/admin/seat-types', ['csrf_token' => $token, 'name' => 'Âm', 'surcharge' => '-5']);
+check('20', 'Phụ thu âm / không phải số -> báo lỗi', str_contains(flashError($admin->follow($r)['body']), 'Phụ thu phải là số nguyên')
+    && (int) scalar("SELECT COUNT(*) FROM seat_types WHERE name = 'Âm'") === 0);
+
+$vip = (int) scalar("SELECT id FROM seat_types WHERE name = 'VIP'");
+$st20 = makeShowtime($moviePG, 2, strtotime('+10 days 10:00'), 75000);
+$oldCode = bookingCodeFrom(book($userA, $st20, [seatId(2, 'C1')]));
+$admin->post("/admin/seat-types/$vip", ['csrf_token' => $token, 'name' => 'VIP', 'surcharge' => '20000']);
+$newCode = bookingCodeFrom(book($userB, $st20, [seatId(2, 'C2')]));
+check('20', 'Đổi phụ thu VIP: vé mới theo giá mới (95.000), vé cũ giữ giá cũ (85.000)',
+    (int) scalar('SELECT total_amount FROM bookings WHERE booking_code = ?', [$newCode]) === 95000
+    && (int) scalar('SELECT total_amount FROM bookings WHERE booking_code = ?', [$oldCode]) === 85000);
+$admin->post("/admin/seat-types/$vip", ['csrf_token' => $token, 'name' => 'VIP', 'surcharge' => '10000']);
+
+$r = $admin->post("/admin/seat-types/$vip/delete", ['csrf_token' => $token]);
+check('20', 'Loại ghế đang được dùng -> không xóa được', (int) scalar('SELECT COUNT(*) FROM seat_types WHERE id = ?', [$vip]) === 1
+    && str_contains(flashError($admin->follow($r)['body']), 'không xóa được'));
+$admin->post("/admin/seat-types/$sweetbox/delete", ['csrf_token' => $token]);
+check('20', 'Loại ghế chưa dùng -> xóa được', (int) scalar('SELECT COUNT(*) FROM seat_types WHERE id = ?', [$sweetbox]) === 0);
+
+$token = $admin->csrf('/admin/rooms/create');
+$admin->post('/admin/rooms', ['csrf_token' => $token, 'cinema_id' => 2, 'name' => 'Phòng Test FR09', 'room_type' => 'deluxe',
+    'rows' => 3, 'cols' => 4, 'seat_type_id' => 1]);
+$room20 = (int) scalar("SELECT id FROM rooms WHERE name = 'Phòng Test FR09'");
+check('20', 'Tạo phòng Deluxe 3x4 -> 12 ghế', $room20 > 0 && scalar('SELECT room_type FROM rooms WHERE id = ?', [$room20]) === 'deluxe'
+    && (int) scalar('SELECT COUNT(*) FROM seats WHERE room_id = ?', [$room20]) === 12);
+$token = $admin->csrf("/admin/rooms/$room20/edit");
+$admin->post("/admin/rooms/$room20", ['csrf_token' => $token, 'name' => 'Phòng Test Đã Sửa', 'room_type' => 'standard', 'status' => 'active']);
+check('20', 'Sửa tên + loại phòng', scalar('SELECT CONCAT(name, "|", room_type) FROM rooms WHERE id = ?', [$room20]) === 'Phòng Test Đã Sửa|standard');
+$r = $admin->post("/admin/rooms/$room20", ['csrf_token' => $token, 'name' => 'Phòng 1', 'room_type' => 'standard', 'status' => 'active']);
+check('20', 'Sửa trùng tên phòng khác trong cùng rạp -> báo lỗi', str_contains(flashError($admin->follow($r)['body']), 'đã tồn tại'));
+
+$token = $admin->csrf("/admin/rooms/$room20/seats");
+$a1 = seatId($room20, 'A1');
+$a2 = seatId($room20, 'A2');
+$admin->post("/admin/rooms/$room20/seats", ['csrf_token' => $token, 'seat' => [$a1 => 'inactive', $a2 => 'aisle']]);
+check('20', 'Đặt ghế Ngừng sử dụng / Lối đi', scalar('SELECT status FROM seats WHERE id = ?', [$a1]) === 'inactive'
+    && scalar('SELECT status FROM seats WHERE id = ?', [$a2]) === 'aisle');
+$st20b = makeShowtime($moviePG, $room20, strtotime('+10 days 14:00'));
+$r = holdSeat($userA, $st20b, $a1);
+check('20', 'Ghế Ngừng sử dụng không giữ / đặt được', !holdOk($r));
+$soldSeat = seatId(2, 'C1');
+$admin->post('/admin/rooms/2/seats', ['csrf_token' => $admin->csrf('/admin/rooms/2/seats'), 'seat' => [$soldSeat => 'aisle']]);
+check('20', 'Ghế đã có vé không đổi thành lối đi được', scalar('SELECT status FROM seats WHERE id = ?', [$soldSeat]) === 'active');
+
+// ---------------------------------------------------------------- Ca 13: thống kê
+section('Ca 13 - Thống kê: chỉ tính đơn Đã xác nhận, Từ ngày > Đến ngày báo lỗi (FR12, UC15)');
+
+$today = date('Y-m-d');
+$r = $admin->get('/admin?from=' . $today . '&to=' . date('Y-m-d', strtotime('-1 day')));
+check('13', 'Từ ngày > Đến ngày -> "Đến ngày phải sau hoặc bằng Từ ngày"', str_contains($r['body'], 'Đến ngày phải sau hoặc bằng Từ ngày'));
+
+$st13 = makeShowtime($moviePG, $room20, strtotime('+11 days 10:00'), 75000);
+bookingCodeFrom(book($userA, $st13, [seatId($room20, 'A3'), seatId($room20, 'A4')]));
+$cancelCode = bookingCodeFrom(book($userB, $st13, [seatId($room20, 'B1')]));
+$admin->post("/admin/bookings/$cancelCode/cancel", ['csrf_token' => $admin->csrf("/admin/bookings/$cancelCode"), 'cancel_reason' => 'Test thống kê']);
+$stats = $admin->get("/admin?from=$today&to=$today&room_id=$room20")['body'];
+$card = fn (string $label) => preg_match('#<div class="value">([^<]+)</div><div class="label">' . $label . '#u', $stats, $m) ? $m[1] : '';
+check('13', 'Vé đã bán = 2 (bỏ 1 vé của đơn đã hủy)', $card('Vé đã bán') === '2', 'vé = ' . $card('Vé đã bán'));
+check('13', 'Doanh thu = 150.000đ theo giá trong vé', $card('Doanh thu') === '150.000đ', 'doanh thu = ' . $card('Doanh thu'));
+check('13', 'Có bảng theo phim và biểu đồ', str_contains($stats, 'Theo phim') && str_contains($stats, 'stats-chart'));
+$empty = $admin->get('/admin?from=2020-01-01&to=2020-01-02')['body'];
+check('13', 'Khoảng không có đơn -> "Không có dữ liệu trong khoảng đã chọn"', str_contains($empty, 'Không có dữ liệu trong khoảng đã chọn'));
 
 // ---------------------------------------------------------------- Lỗi hệ thống
 section('Lỗi CSDL không lộ chi tiết SQL');

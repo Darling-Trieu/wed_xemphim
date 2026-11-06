@@ -13,26 +13,29 @@ interface SeatDto {
 }
 
 interface SeatsResponse {
-    showtime: {
-        id: number;
-        movie: string;
-        cinema: string;
-        room: string;
-        show_date: string;
-        start_time: string;
-        sale_closed: boolean;
-    };
+    showtime: { id: number; sale_closed: boolean };
     seats: SeatDto[];
 }
 
+interface HoldResult {
+    held: boolean;
+    expires_at: number | null;
+    error: string | null;
+}
+
 interface SeatMapState {
+    container: HTMLElement;
+    showtimeId: string;
+    apiUrl: string;
+    csrfToken: string;
     interactive: boolean;
     maxSeats: number;
     storageKey: string;
     selected: Set<number>;
     seatById: Map<number, SeatDto>;
-    holdExpiresAt: number | null;
 }
+
+const REFRESH_MS = 5000;
 
 document.addEventListener('DOMContentLoaded', () => {
     initAgeConfirm();
@@ -43,59 +46,61 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const showtimeId = container.dataset.showtimeId || '';
-    const apiUrl = container.dataset.apiUrl || '/api.php';
-
     const state: SeatMapState = {
+        container,
+        showtimeId,
+        apiUrl: container.dataset.apiUrl || '/api.php',
+        csrfToken: container.dataset.csrf || '',
         interactive: container.dataset.interactive === '1',
         maxSeats: parseInt(container.dataset.maxSeats || '8', 10),
         storageKey: `seat-selection-${showtimeId}`,
         selected: new Set<number>(),
         seatById: new Map<number, SeatDto>(),
-        holdExpiresAt: null,
     };
 
-    fetch(`${apiUrl}?action=seats&showtime_id=${encodeURIComponent(showtimeId)}`)
-        .then((res) => {
-            if (!res.ok) {
-                throw new Error('Không tải được sơ đồ ghế');
-            }
-            return res.json() as Promise<SeatsResponse>;
+    loadSeats(state, true)
+        .then(() => {
+            window.setInterval(() => updateCountdown(state), 1000);
+            window.setInterval(() => loadSeats(state, false).catch(() => undefined), REFRESH_MS);
         })
+        .catch(() => {
+            container.innerHTML = '<p>Không tải được sơ đồ ghế, vui lòng thử lại.</p>';
+        });
+});
+
+/**
+ * Tải trạng thái ghế. Lần đầu: khôi phục ghế đã chọn (sessionStorage) và giữ lại những ghế
+ * chưa được giữ cho session này. Các lần sau (mỗi 5 giây): bỏ những ghế đã bị người khác lấy.
+ */
+function loadSeats(state: SeatMapState, firstLoad: boolean): Promise<void> {
+    return fetch(`${state.apiUrl}?action=seats&showtime_id=${encodeURIComponent(state.showtimeId)}`)
+        .then((res) => (res.ok ? (res.json() as Promise<SeatsResponse>) : Promise.reject(new Error('Không tải được sơ đồ ghế'))))
         .then((data) => {
             if (data.showtime.sale_closed) {
                 state.interactive = false;
             }
             data.seats.forEach((seat) => state.seatById.set(seat.id, seat));
-            restoreSelection(state);
-            renderSeats(container, data.seats, state);
-            updateSummary(state);
-            updateCountdown(state);
-            window.setInterval(() => updateCountdown(state), 1000);
-            window.setInterval(() => refreshSeats(container, apiUrl, state), 5000);
-        })
-        .catch(() => {
-            container.innerHTML = '<p>Không tải được sơ đồ ghế, vui lòng thử lại.</p>';
-        });
 
-        function refreshSeats(container: HTMLElement, apiUrl: string, state: SeatMapState): void {
-            fetch(`${apiUrl}?action=seats&showtime_id=${encodeURIComponent(state.storageKey.replace('seat-selection-', ''))}`)
-                .then((res) => res.ok ? res.json() as Promise<SeatsResponse> : Promise.reject(new Error('Không tải được trạng thái ghế')))
-                .then((data) => {
-                    data.seats.forEach((seat) => state.seatById.set(seat.id, seat));
-                    state.selected.forEach((id) => {
-                        if (!isSelectable(state.seatById.get(id))) {
-                            state.selected.delete(id);
-                        }
-                    });
-                    state.holdExpiresAt = getSelectedHoldExpiry(state);
-                    renderSeats(container, data.seats, state);
-                    saveSelection(state);
-                    updateSummary(state);
-                    updateCountdown(state);
-                })
-                .catch(() => undefined);
-        }
-});
+            if (firstLoad) {
+                restoreSelection(state);
+                reholdRestoredSeats(state);
+            } else {
+                state.selected.forEach((id) => {
+                    if (!isSelectable(state.seatById.get(id))) {
+                        state.selected.delete(id);
+                    }
+                });
+                saveSelection(state);
+            }
+            refreshView(state);
+        });
+}
+
+function refreshView(state: SeatMapState): void {
+    renderSeats(state);
+    updateSummary(state);
+    updateCountdown(state);
+}
 
 function seatTypeClass(type: string): string {
     if (type === 'VIP') return 'type-vip';
@@ -107,21 +112,27 @@ function formatMoney(amount: number): string {
     return amount.toLocaleString('vi-VN') + 'đ';
 }
 
+function showMessage(text: string): void {
+    const message = document.getElementById('seat-message');
+    if (message) {
+        message.textContent = text;
+    }
+}
+
 function isSelectable(seat: SeatDto | undefined): boolean {
     return !!seat && seat.is_active && !seat.is_aisle && !seat.is_booked
         && (!seat.is_held || seat.held_by_me);
 }
 
 /**
- * Ghế đang chọn chỉ lưu ở trình duyệt (sessionStorage): khách đăng nhập xong hoặc bấm
- * "Quay lại" từ màn hình xác nhận sẽ thấy lại đúng các ghế đã chọn. Ghế đã bị người khác
- * mua trong lúc đó được bỏ ra.
+ * Ghế đang chọn lưu ở trình duyệt (sessionStorage): khách đăng nhập xong hoặc bấm "Quay lại"
+ * từ màn hình xác nhận sẽ thấy lại đúng các ghế đã chọn. Ghế đã bị người khác lấy được bỏ ra.
  */
 function restoreSelection(state: SeatMapState): void {
     if (!state.interactive) {
         return;
     }
-    let saved: number[] = [];
+    let saved: unknown = [];
     try {
         saved = JSON.parse(sessionStorage.getItem(state.storageKey) || '[]');
     } catch (e) {
@@ -130,12 +141,23 @@ function restoreSelection(state: SeatMapState): void {
     if (!Array.isArray(saved)) {
         return;
     }
-    saved.forEach((id) => {
-        if (state.selected.size < state.maxSeats && isSelectable(state.seatById.get(Number(id)))) {
-            state.selected.add(Number(id));
+    saved.map(Number).forEach((id) => {
+        if (state.selected.size < state.maxSeats && isSelectable(state.seatById.get(id))) {
+            state.selected.add(id);
         }
     });
     saveSelection(state);
+}
+
+/** Ghế khôi phục nhưng chưa được giữ cho session này (giữ đã hết hạn...) thì giữ lại ngay. */
+function reholdRestoredSeats(state: SeatMapState): void {
+    state.selected.forEach((id) => {
+        const seat = state.seatById.get(id);
+        if (!seat || seat.held_by_me) {
+            return;
+        }
+        requestHold(state, 'hold_seat', id).then((result) => applyHoldResult(state, id, result));
+    });
 }
 
 function saveSelection(state: SeatMapState): void {
@@ -146,9 +168,9 @@ function saveSelection(state: SeatMapState): void {
     }
 }
 
-function renderSeats(container: HTMLElement, seats: SeatDto[], state: SeatMapState): void {
+function renderSeats(state: SeatMapState): void {
     const rows = new Map<string, SeatDto[]>();
-    seats.forEach((seat) => {
+    state.seatById.forEach((seat) => {
         if (!rows.has(seat.row)) {
             rows.set(seat.row, []);
         }
@@ -178,43 +200,39 @@ function renderSeats(container: HTMLElement, seats: SeatDto[], state: SeatMapSta
                         rowEl.appendChild(createAisle());
                     }
                     expected = seat.number + 1;
-
-                    if (seat.is_aisle) {
-                        rowEl.appendChild(createAisle());
-                        return;
-                    }
-
-                    const seatEl = document.createElement('div');
-                    seatEl.className = 'seat ' + seatTypeClass(seat.type);
-                    seatEl.textContent = rowLabel + seat.number;
-
-                    if (!seat.is_active) {
-                        seatEl.classList.add('inactive');
-                        seatEl.title = `${rowLabel}${seat.number} - Ngừng sử dụng`;
-                    } else if (seat.is_booked) {
-                        seatEl.classList.add('booked');
-                        seatEl.title = `${rowLabel}${seat.number} - Đã bán`;
-                    } else if (seat.is_held && !seat.held_by_me) {
-                        seatEl.classList.add('held');
-                        seatEl.title = `${rowLabel}${seat.number} - Đang được khách khác giữ`;
-                    } else {
-                        seatEl.title = `${seat.type} - ${formatMoney(seat.price)}`;
-                        if (state.selected.has(seat.id)) {
-                            seatEl.classList.add('selected');
-                        }
-                        if (state.interactive) {
-                            seatEl.addEventListener('click', () => toggleSeat(seat.id, seatEl, state));
-                        }
-                    }
-
-                    rowEl.appendChild(seatEl);
+                    rowEl.appendChild(seat.is_aisle ? createAisle() : createSeat(seat, state));
                 });
 
             grid.appendChild(rowEl);
         });
 
-    container.innerHTML = '';
-    container.appendChild(grid);
+    state.container.innerHTML = '';
+    state.container.appendChild(grid);
+}
+
+function createSeat(seat: SeatDto, state: SeatMapState): HTMLElement {
+    const label = seat.row + seat.number;
+    const seatEl = document.createElement('div');
+    seatEl.className = 'seat ' + seatTypeClass(seat.type);
+    seatEl.textContent = label;
+
+    if (!seat.is_active) {
+        seatEl.classList.add('inactive');
+        seatEl.title = `${label} - Ngừng sử dụng`;
+    } else if (seat.is_booked) {
+        seatEl.classList.add('booked');
+        seatEl.title = `${label} - Đã bán`;
+    } else if (seat.is_held && !seat.held_by_me) {
+        seatEl.classList.add('held');
+        seatEl.title = `${label} - Đang được khách khác giữ`;
+    } else {
+        seatEl.title = `${seat.type} - ${formatMoney(seat.price)}`;
+        seatEl.classList.toggle('selected', state.selected.has(seat.id));
+        if (state.interactive) {
+            seatEl.addEventListener('click', () => toggleSeat(seat.id, state));
+        }
+    }
+    return seatEl;
 }
 
 function createAisle(): HTMLElement {
@@ -224,66 +242,59 @@ function createAisle(): HTMLElement {
     return el;
 }
 
-function toggleSeat(seatId: number, seatEl: HTMLElement, state: SeatMapState): void {
-    const message = document.getElementById('seat-message');
+function toggleSeat(seatId: number, state: SeatMapState): void {
+    showMessage('');
 
     if (state.selected.has(seatId)) {
         state.selected.delete(seatId);
-        seatEl.classList.remove('selected');
-        updateSeatHold('release_seat', seatId, state);
+        requestHold(state, 'release_seat', seatId);
     } else {
         if (state.selected.size >= state.maxSeats) {
-            if (message) {
-                message.textContent = `Mỗi đơn chỉ được chọn tối đa ${state.maxSeats} ghế`;
-            }
+            showMessage(`Mỗi đơn chỉ được chọn tối đa ${state.maxSeats} ghế`);
             return;
         }
         state.selected.add(seatId);
-        seatEl.classList.add('selected');
-        updateSeatHold('hold_seat', seatId, state).then((result) => {
-            if (result.held) {
-                const seat = state.seatById.get(seatId);
-                if (seat) {
-                    seat.hold_expires_at = result.expires_at;
-                }
-                state.holdExpiresAt = getSelectedHoldExpiry(state);
-                updateCountdown(state);
-                return;
-            }
-            state.selected.delete(seatId);
-            seatEl.classList.remove('selected');
-            seatEl.classList.add('held');
-            seatEl.title = 'Đang được khách khác giữ';
-            updateSummary(state);
-            if (message) {
-                message.textContent = 'Ghế vừa được người khác giữ, vui lòng chọn ghế khác.';
-            }
-        });
+        requestHold(state, 'hold_seat', seatId).then((result) => applyHoldResult(state, seatId, result));
     }
 
-    if (message) {
-        message.textContent = '';
-    }
     saveSelection(state);
-    updateSummary(state);
-    updateCountdown(state);
+    refreshView(state);
 }
 
-function updateSeatHold(action: string, seatId: number, state: SeatMapState): Promise<{held: boolean; expires_at: number | null}> {
-    const formData = new URLSearchParams({
-        showtime_id: state.storageKey.replace('seat-selection-', ''),
+/** Giữ ghế thất bại (người khác giữ, đủ 8 ghế, đóng bán...): bỏ chọn và báo lý do. */
+function applyHoldResult(state: SeatMapState, seatId: number, result: HoldResult): void {
+    const seat = state.seatById.get(seatId);
+    if (result.held) {
+        if (seat) {
+            seat.held_by_me = true;
+            seat.hold_expires_at = result.expires_at;
+        }
+    } else {
+        state.selected.delete(seatId);
+        saveSelection(state);
+        showMessage(result.error || 'Ghế vừa được người khác giữ, vui lòng chọn ghế khác.');
+    }
+    refreshView(state);
+}
+
+function requestHold(state: SeatMapState, action: 'hold_seat' | 'release_seat', seatId: number): Promise<HoldResult> {
+    const body = new URLSearchParams({
+        showtime_id: state.showtimeId,
         seat_id: String(seatId),
+        csrf_token: state.csrfToken,
     });
-    return fetch(`${document.getElementById('seat-map')?.getAttribute('data-api-url') || '/api.php'}?action=${action}`, {
+    return fetch(`${state.apiUrl}?action=${action}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: formData.toString(),
-    }).then((res) => res.ok ? res.json() : Promise.reject(new Error('Không giữ được ghế')))
-        .then((data: { held?: boolean; expires_at?: number | null }) => ({
+        body: body.toString(),
+    })
+        .then((res) => res.json() as Promise<{ held?: boolean; expires_at?: number | null; error?: string | null }>)
+        .then((data) => ({
             held: action === 'release_seat' || data.held === true,
             expires_at: data.expires_at || null,
+            error: data.error || null,
         }))
-        .catch(() => ({ held: false, expires_at: null }));
+        .catch(() => ({ held: false, expires_at: null, error: 'Không giữ được ghế, vui lòng thử lại.' }));
 }
 
 function updateSummary(state: SeatMapState): void {
@@ -318,6 +329,7 @@ function updateSummary(state: SeatMapState): void {
     }
 }
 
+/** Hạn giữ sớm nhất trong các ghế đang chọn (unix giây), null nếu chưa giữ ghế nào. */
 function getSelectedHoldExpiry(state: SeatMapState): number | null {
     const expiries = Array.from(state.selected)
         .map((id) => state.seatById.get(id)?.hold_expires_at || null)
@@ -329,31 +341,20 @@ function updateCountdown(state: SeatMapState): void {
     const countdown = document.getElementById('hold-countdown');
     if (!countdown) return;
 
-    state.holdExpiresAt = getSelectedHoldExpiry(state);
-    if (state.holdExpiresAt === null) {
+    const expiresAt = getSelectedHoldExpiry(state);
+    if (expiresAt === null) {
         countdown.textContent = '';
         return;
     }
 
-    const seconds = state.holdExpiresAt
-        ? Math.max(0, state.holdExpiresAt - Math.floor(Date.now() / 1000))
-        : 0;
+    const seconds = Math.max(0, expiresAt - Math.floor(Date.now() / 1000));
     if (seconds === 0) {
         countdown.textContent = '';
-        if (state.selected.size > 0) {
-            state.selected.clear();
-            saveSelection(state);
-            updateSummary(state);
-            renderSeats(
-                document.getElementById('seat-map') as HTMLElement,
-                Array.from(state.seatById.values()),
-                state
-            );
-            const message = document.getElementById('seat-message');
-            if (message) {
-                message.textContent = 'Thời gian giữ ghế đã hết, vui lòng chọn lại.';
-            }
-        }
+        state.selected.clear();
+        saveSelection(state);
+        renderSeats(state);
+        updateSummary(state);
+        showMessage('Thời gian giữ ghế đã hết, vui lòng chọn lại.');
         return;
     }
 

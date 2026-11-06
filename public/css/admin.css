@@ -288,16 +288,18 @@
 }
 .chart-card h3 { margin: 0 0 18px; font-size: 23px; font-weight: 700; color: #fff; }
 
-/* Lưới cố định: cột 1 là tên hàng, mỗi ghế nằm đúng cột theo số ghế */
+/* Lưới cố định: cột 1 là tên hàng, mỗi ghế nằm đúng cột theo số ghế, cột cuối chọn nhanh cả hàng */
 .seat-editor-grid {
     display: grid;
-    grid-template-columns: 28px repeat(var(--cols, 8), 84px);
+    grid-template-columns: 28px repeat(var(--cols, 8), 84px) 120px;
     gap: 8px;
     margin-bottom: 20px;
     overflow-x: auto;
     padding-bottom: 6px;
 }
-.seat-editor-screen { grid-column: 2 / -1; margin-bottom: 14px; }
+.seat-editor-screen { grid-column: 2 / -2; margin-bottom: 14px; }
+.seat-editor-rowfill { grid-column: -2; align-self: center; }
+.seat-editor-rowfill select { width: 100%; height: 28px; font-size: 0.8rem; color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 5px; }
 .seat-editor-row { display: contents; }
 .seat-editor-row label {
     grid-column: 1;
@@ -320,6 +322,9 @@
 }
 .seat-editor-cell.type-vip { border-color: #f5b301; background: rgba(245,179,1,0.08); }
 .seat-editor-cell.type-doi { border-color: #a855f7; background: rgba(168,85,247,0.10); }
+.seat-editor-cell.is-inactive { border-style: dashed; opacity: 0.6; }
+.seat-editor-cell.is-aisle { background: transparent; border-style: dotted; border-color: #3a3a3f; }
+.seat-editor-cell.has-ticket .seat-editor-name::after { content: " •"; color: var(--primary); }
 .seat-editor-name { text-align: center; font-size: 0.85rem; font-weight: 700; color: var(--text); }
 .seat-editor-cell select {
     width: 100%;

@@ -40,6 +40,7 @@ $legendStyle = ['VIP' => 'border-color:#f5b301;', 'Đôi' => 'border-color:#a855
              data-showtime-id="<?= (int) $showtime['id'] ?>"
              data-interactive="<?= $saleClosed ? '0' : '1' ?>"
              data-max-seats="<?= MAX_SEATS_PER_BOOKING ?>"
+             data-csrf="<?= htmlspecialchars(Csrf::token()) ?>"
              data-api-url="<?= BASE_URL ?>/api.php">
             <p>Đang tải sơ đồ ghế...</p>
         </div>

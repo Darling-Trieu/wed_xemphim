@@ -21,15 +21,16 @@
         // Mục đang mở được tô nền (giống thiết kế Figma Admin_page)
         $adminPath = substr((string) parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH), strlen(BASE_URL));
         $adminNav = [
-            '/admin'           => 'Dashboard',
-            '/admin/movies'    => 'Phim',
-            '/admin/genres'    => 'Thể loại',
-            '/admin/cinemas'   => 'Rạp chiếu',
-            '/admin/rooms'     => 'Phòng chiếu',
-            '/admin/showtimes' => 'Suất chiếu',
-            '/admin/bookings'  => 'Đơn đặt vé',
-            '/admin/customers' => 'Khách hàng',
-            '/admin/logs'      => 'Nhật ký hệ thống',
+            '/admin'            => 'Dashboard',
+            '/admin/movies'     => 'Phim',
+            '/admin/genres'     => 'Thể loại',
+            '/admin/cinemas'    => 'Rạp chiếu',
+            '/admin/rooms'      => 'Phòng chiếu',
+            '/admin/seat-types' => 'Loại ghế',
+            '/admin/showtimes'  => 'Suất chiếu',
+            '/admin/bookings'   => 'Đơn đặt vé',
+            '/admin/customers'  => 'Khách hàng',
+            '/admin/logs'       => 'Nhật ký hệ thống',
         ];
         ?>
         <nav>

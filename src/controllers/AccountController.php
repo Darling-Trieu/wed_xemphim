@@ -84,7 +84,7 @@ class AccountController extends Controller
         }
 
         AuditLog::write('password_change', 'user', Auth::id());
-        session_regenerate_id(true);
+        Auth::regenerateSession();
         unset($_SESSION['csrf_token']);
         $this->flash('success', 'Đổi mật khẩu thành công.');
         $this->redirect('/account');

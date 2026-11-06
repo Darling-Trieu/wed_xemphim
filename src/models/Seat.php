@@ -32,9 +32,24 @@ class Seat extends Model
         return (int) self::db()->lastInsertId();
     }
 
-    public static function updateType(int $id, int $seatTypeId): void
+    /** active = ghế bình thường, inactive = Ngừng sử dụng, aisle = ô lối đi (không phải ghế). */
+    public const STATUSES = ['active', 'inactive', 'aisle'];
+
+    public static function update(int $id, int $seatTypeId, string $status): void
     {
-        self::db()->prepare('UPDATE seats SET seat_type_id = ? WHERE id = ?')->execute([$seatTypeId, $id]);
+        self::db()->prepare('UPDATE seats SET seat_type_id = ?, status = ? WHERE id = ?')
+            ->execute([$seatTypeId, $status, $id]);
+    }
+
+    /** @return int[] id các ghế của phòng đã từng được bán vé (không được biến thành lối đi - BR09) */
+    public static function idsWithTickets(int $roomId): array
+    {
+        $stmt = self::db()->prepare(
+            'SELECT DISTINCT bs.seat_id FROM booking_seats bs
+             INNER JOIN seats s ON s.id = bs.seat_id WHERE s.room_id = ?'
+        );
+        $stmt->execute([$roomId]);
+        return array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
     }
 
 

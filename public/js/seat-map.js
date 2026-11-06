@@ -1,4 +1,5 @@
 "use strict";
+const REFRESH_MS = 5000;
 document.addEventListener('DOMContentLoaded', () => {
     initAgeConfirm();
     const container = document.getElementById('seat-map');
@@ -6,56 +7,54 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
     const showtimeId = container.dataset.showtimeId || '';
-    const apiUrl = container.dataset.apiUrl || '/api.php';
     const state = {
+        container,
+        showtimeId,
+        apiUrl: container.dataset.apiUrl || '/api.php',
+        csrfToken: container.dataset.csrf || '',
         interactive: container.dataset.interactive === '1',
         maxSeats: parseInt(container.dataset.maxSeats || '8', 10),
         storageKey: `seat-selection-${showtimeId}`,
         selected: new Set(),
         seatById: new Map(),
-        holdExpiresAt: null,
     };
-    fetch(`${apiUrl}?action=seats&showtime_id=${encodeURIComponent(showtimeId)}`)
-        .then((res) => {
-        if (!res.ok) {
-            throw new Error('Không tải được sơ đồ ghế');
-        }
-        return res.json();
+    loadSeats(state, true)
+        .then(() => {
+        window.setInterval(() => updateCountdown(state), 1000);
+        window.setInterval(() => loadSeats(state, false).catch(() => undefined), REFRESH_MS);
     })
+        .catch(() => {
+        container.innerHTML = '<p>Không tải được sơ đồ ghế, vui lòng thử lại.</p>';
+    });
+});
+function loadSeats(state, firstLoad) {
+    return fetch(`${state.apiUrl}?action=seats&showtime_id=${encodeURIComponent(state.showtimeId)}`)
+        .then((res) => (res.ok ? res.json() : Promise.reject(new Error('Không tải được sơ đồ ghế'))))
         .then((data) => {
         if (data.showtime.sale_closed) {
             state.interactive = false;
         }
         data.seats.forEach((seat) => state.seatById.set(seat.id, seat));
-        restoreSelection(state);
-        renderSeats(container, data.seats, state);
-        updateSummary(state);
-        updateCountdown(state);
-        window.setInterval(() => updateCountdown(state), 1000);
-        window.setInterval(() => refreshSeats(container, apiUrl, state), 5000);
-    })
-        .catch(() => {
-        container.innerHTML = '<p>Không tải được sơ đồ ghế, vui lòng thử lại.</p>';
-    });
-    function refreshSeats(container, apiUrl, state) {
-        fetch(`${apiUrl}?action=seats&showtime_id=${encodeURIComponent(state.storageKey.replace('seat-selection-', ''))}`)
-            .then((res) => res.ok ? res.json() : Promise.reject(new Error('Không tải được trạng thái ghế')))
-            .then((data) => {
-            data.seats.forEach((seat) => state.seatById.set(seat.id, seat));
+        if (firstLoad) {
+            restoreSelection(state);
+            reholdRestoredSeats(state);
+        }
+        else {
             state.selected.forEach((id) => {
                 if (!isSelectable(state.seatById.get(id))) {
                     state.selected.delete(id);
                 }
             });
-            state.holdExpiresAt = getSelectedHoldExpiry(state);
-            renderSeats(container, data.seats, state);
             saveSelection(state);
-            updateSummary(state);
-            updateCountdown(state);
-        })
-            .catch(() => undefined);
-    }
-});
+        }
+        refreshView(state);
+    });
+}
+function refreshView(state) {
+    renderSeats(state);
+    updateSummary(state);
+    updateCountdown(state);
+}
 function seatTypeClass(type) {
     if (type === 'VIP')
         return 'type-vip';
@@ -65,6 +64,12 @@ function seatTypeClass(type) {
 }
 function formatMoney(amount) {
     return amount.toLocaleString('vi-VN') + 'đ';
+}
+function showMessage(text) {
+    const message = document.getElementById('seat-message');
+    if (message) {
+        message.textContent = text;
+    }
 }
 function isSelectable(seat) {
     return !!seat && seat.is_active && !seat.is_aisle && !seat.is_booked
@@ -84,12 +89,21 @@ function restoreSelection(state) {
     if (!Array.isArray(saved)) {
         return;
     }
-    saved.forEach((id) => {
-        if (state.selected.size < state.maxSeats && isSelectable(state.seatById.get(Number(id)))) {
-            state.selected.add(Number(id));
+    saved.map(Number).forEach((id) => {
+        if (state.selected.size < state.maxSeats && isSelectable(state.seatById.get(id))) {
+            state.selected.add(id);
         }
     });
     saveSelection(state);
+}
+function reholdRestoredSeats(state) {
+    state.selected.forEach((id) => {
+        const seat = state.seatById.get(id);
+        if (!seat || seat.held_by_me) {
+            return;
+        }
+        requestHold(state, 'hold_seat', id).then((result) => applyHoldResult(state, id, result));
+    });
 }
 function saveSelection(state) {
     try {
@@ -98,9 +112,9 @@ function saveSelection(state) {
     catch (e) {
     }
 }
-function renderSeats(container, seats, state) {
+function renderSeats(state) {
     const rows = new Map();
-    seats.forEach((seat) => {
+    state.seatById.forEach((seat) => {
         if (!rows.has(seat.row)) {
             rows.set(seat.row, []);
         }
@@ -125,40 +139,38 @@ function renderSeats(container, seats, state) {
                 rowEl.appendChild(createAisle());
             }
             expected = seat.number + 1;
-            if (seat.is_aisle) {
-                rowEl.appendChild(createAisle());
-                return;
-            }
-            const seatEl = document.createElement('div');
-            seatEl.className = 'seat ' + seatTypeClass(seat.type);
-            seatEl.textContent = rowLabel + seat.number;
-            if (!seat.is_active) {
-                seatEl.classList.add('inactive');
-                seatEl.title = `${rowLabel}${seat.number} - Ngừng sử dụng`;
-            }
-            else if (seat.is_booked) {
-                seatEl.classList.add('booked');
-                seatEl.title = `${rowLabel}${seat.number} - Đã bán`;
-            }
-            else if (seat.is_held && !seat.held_by_me) {
-                seatEl.classList.add('held');
-                seatEl.title = `${rowLabel}${seat.number} - Đang được khách khác giữ`;
-            }
-            else {
-                seatEl.title = `${seat.type} - ${formatMoney(seat.price)}`;
-                if (state.selected.has(seat.id)) {
-                    seatEl.classList.add('selected');
-                }
-                if (state.interactive) {
-                    seatEl.addEventListener('click', () => toggleSeat(seat.id, seatEl, state));
-                }
-            }
-            rowEl.appendChild(seatEl);
+            rowEl.appendChild(seat.is_aisle ? createAisle() : createSeat(seat, state));
         });
         grid.appendChild(rowEl);
     });
-    container.innerHTML = '';
-    container.appendChild(grid);
+    state.container.innerHTML = '';
+    state.container.appendChild(grid);
+}
+function createSeat(seat, state) {
+    const label = seat.row + seat.number;
+    const seatEl = document.createElement('div');
+    seatEl.className = 'seat ' + seatTypeClass(seat.type);
+    seatEl.textContent = label;
+    if (!seat.is_active) {
+        seatEl.classList.add('inactive');
+        seatEl.title = `${label} - Ngừng sử dụng`;
+    }
+    else if (seat.is_booked) {
+        seatEl.classList.add('booked');
+        seatEl.title = `${label} - Đã bán`;
+    }
+    else if (seat.is_held && !seat.held_by_me) {
+        seatEl.classList.add('held');
+        seatEl.title = `${label} - Đang được khách khác giữ`;
+    }
+    else {
+        seatEl.title = `${seat.type} - ${formatMoney(seat.price)}`;
+        seatEl.classList.toggle('selected', state.selected.has(seat.id));
+        if (state.interactive) {
+            seatEl.addEventListener('click', () => toggleSeat(seat.id, state));
+        }
+    }
+    return seatEl;
 }
 function createAisle() {
     const el = document.createElement('div');
@@ -166,99 +178,56 @@ function createAisle() {
     el.setAttribute('aria-hidden', 'true');
     return el;
 }
-function toggleSeat(seatId, seatEl, state) {
-    const message = document.getElementById('seat-message');
+function toggleSeat(seatId, state) {
+    showMessage('');
     if (state.selected.has(seatId)) {
         state.selected.delete(seatId);
-        seatEl.classList.remove('selected');
-        updateSeatHold('release_seat', seatId, state);
+        requestHold(state, 'release_seat', seatId);
     }
     else {
         if (state.selected.size >= state.maxSeats) {
-            if (message) {
-                message.textContent = `Mỗi đơn chỉ được chọn tối đa ${state.maxSeats} ghế`;
-            }
+            showMessage(`Mỗi đơn chỉ được chọn tối đa ${state.maxSeats} ghế`);
             return;
         }
         state.selected.add(seatId);
-        seatEl.classList.add('selected');
-        updateSeatHold('hold_seat', seatId, state).then((result) => {
-            if (result.held) {
-                const seat = state.seatById.get(seatId);
-                if (seat) {
-                    seat.hold_expires_at = result.expires_at;
-                }
-                state.holdExpiresAt = getSelectedHoldExpiry(state);
-                updateCountdown(state);
-                return;
-            }
-            state.selected.delete(seatId);
-            seatEl.classList.remove('selected');
-            seatEl.classList.add('held');
-            seatEl.title = 'Đang được khách khác giữ';
-            updateSummary(state);
-            if (message) {
-                message.textContent = 'Ghế vừa được người khác giữ, vui lòng chọn ghế khác.';
-            }
-        });
-    }
-    function updateSeatHold(action, seatId, state) {
-        const formData = new URLSearchParams({
-            showtime_id: state.storageKey.replace('seat-selection-', ''),
-            seat_id: String(seatId),
-        });
-        return fetch(`${document.getElementById('seat-map')?.getAttribute('data-api-url') || '/api.php'}?action=${action}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: formData.toString(),
-        }).then((res) => res.ok ? res.json() : Promise.reject(new Error('Không giữ được ghế')))
-            .then((data) => ({
-            held: action === 'release_seat' || data.held === true,
-            expires_at: data.expires_at || null,
-    }))
-            .catch(() => ({ held: false, expires_at: null }));
-    }
-    if (message) {
-        message.textContent = '';
+        requestHold(state, 'hold_seat', seatId).then((result) => applyHoldResult(state, seatId, result));
     }
     saveSelection(state);
-    updateSummary(state);
-    updateCountdown(state);
+    refreshView(state);
 }
-function getSelectedHoldExpiry(state) {
-    const expiries = Array.from(state.selected)
-        .map((id) => { var _a; return ((_a = state.seatById.get(id)) === null || _a === void 0 ? void 0 : _a.hold_expires_at) || null; })
-        .filter((expiry) => expiry !== null);
-    return expiries.length ? Math.min(...expiries) : null;
-}
-function updateCountdown(state) {
-    const countdown = document.getElementById('hold-countdown');
-    if (!countdown)
-        return;
-    state.holdExpiresAt = getSelectedHoldExpiry(state);
-    if (state.holdExpiresAt === null) {
-        countdown.textContent = '';
-        return;
-    }
-    const seconds = state.holdExpiresAt
-        ? Math.max(0, state.holdExpiresAt - Math.floor(Date.now() / 1000))
-        : 0;
-    if (seconds === 0) {
-        countdown.textContent = '';
-        if (state.selected.size > 0) {
-            state.selected.clear();
-            saveSelection(state);
-            updateSummary(state);
-            renderSeats(document.getElementById('seat-map'), Array.from(state.seatById.values()), state);
-            const message = document.getElementById('seat-message');
-            if (message) {
-                message.textContent = 'Thời gian giữ ghế đã hết, vui lòng chọn lại.';
-            }
+function applyHoldResult(state, seatId, result) {
+    const seat = state.seatById.get(seatId);
+    if (result.held) {
+        if (seat) {
+            seat.held_by_me = true;
+            seat.hold_expires_at = result.expires_at;
         }
-        return;
     }
-    const minutes = Math.floor(seconds / 60);
-    countdown.textContent = `Thời gian giữ ghế còn lại: ${minutes}:${String(seconds % 60).padStart(2, '0')}`;
+    else {
+        state.selected.delete(seatId);
+        saveSelection(state);
+        showMessage(result.error || 'Ghế vừa được người khác giữ, vui lòng chọn ghế khác.');
+    }
+    refreshView(state);
+}
+function requestHold(state, action, seatId) {
+    const body = new URLSearchParams({
+        showtime_id: state.showtimeId,
+        seat_id: String(seatId),
+        csrf_token: state.csrfToken,
+    });
+    return fetch(`${state.apiUrl}?action=${action}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: body.toString(),
+    })
+        .then((res) => res.json())
+        .then((data) => ({
+        held: action === 'release_seat' || data.held === true,
+        expires_at: data.expires_at || null,
+        error: data.error || null,
+    }))
+        .catch(() => ({ held: false, expires_at: null, error: 'Không giữ được ghế, vui lòng thử lại.' }));
 }
 function updateSummary(state) {
     const input = document.getElementById('seat-ids-input');
@@ -287,6 +256,34 @@ function updateSummary(state) {
     if (submitBtn) {
         submitBtn.disabled = ids.length === 0;
     }
+}
+function getSelectedHoldExpiry(state) {
+    const expiries = Array.from(state.selected)
+        .map((id) => { var _a; return ((_a = state.seatById.get(id)) === null || _a === void 0 ? void 0 : _a.hold_expires_at) || null; })
+        .filter((expiry) => expiry !== null);
+    return expiries.length ? Math.min(...expiries) : null;
+}
+function updateCountdown(state) {
+    const countdown = document.getElementById('hold-countdown');
+    if (!countdown)
+        return;
+    const expiresAt = getSelectedHoldExpiry(state);
+    if (expiresAt === null) {
+        countdown.textContent = '';
+        return;
+    }
+    const seconds = Math.max(0, expiresAt - Math.floor(Date.now() / 1000));
+    if (seconds === 0) {
+        countdown.textContent = '';
+        state.selected.clear();
+        saveSelection(state);
+        renderSeats(state);
+        updateSummary(state);
+        showMessage('Thời gian giữ ghế đã hết, vui lòng chọn lại.');
+        return;
+    }
+    const minutes = Math.floor(seconds / 60);
+    countdown.textContent = `Thời gian giữ ghế còn lại: ${minutes}:${String(seconds % 60).padStart(2, '0')}`;
 }
 function initAgeConfirm() {
     const form = document.getElementById('confirm-form');

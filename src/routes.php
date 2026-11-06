@@ -53,9 +53,16 @@ $router->post('/admin/cinemas/{id}/delete', 'admin/AdminCinemaController@delete'
 $router->get('/admin/rooms', 'admin/AdminRoomController@index');
 $router->get('/admin/rooms/create', 'admin/AdminRoomController@createForm');
 $router->post('/admin/rooms', 'admin/AdminRoomController@store');
+$router->get('/admin/rooms/{id}/edit', 'admin/AdminRoomController@editForm');
+$router->post('/admin/rooms/{id}', 'admin/AdminRoomController@update');
 $router->get('/admin/rooms/{id}/seats', 'admin/AdminRoomController@seats');
 $router->post('/admin/rooms/{id}/seats', 'admin/AdminRoomController@updateSeats');
 $router->post('/admin/rooms/{id}/delete', 'admin/AdminRoomController@delete');
+
+$router->get('/admin/seat-types', 'admin/AdminSeatTypeController@index');
+$router->post('/admin/seat-types', 'admin/AdminSeatTypeController@store');
+$router->post('/admin/seat-types/{id}', 'admin/AdminSeatTypeController@update');
+$router->post('/admin/seat-types/{id}/delete', 'admin/AdminSeatTypeController@delete');
 
 $router->get('/admin/showtimes', 'admin/AdminShowtimeController@index');
 $router->get('/admin/showtimes/create', 'admin/AdminShowtimeController@createForm');
