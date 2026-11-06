@@ -9,6 +9,7 @@ interface SeatDto {
     is_booked: boolean;
     is_held: boolean;
     held_by_me: boolean;
+    hold_expires_at: number | null;
 }
 
 interface SeatsResponse {
@@ -30,6 +31,7 @@ interface SeatMapState {
     storageKey: string;
     selected: Set<number>;
     seatById: Map<number, SeatDto>;
+    holdExpiresAt: number | null;
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -49,6 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
         storageKey: `seat-selection-${showtimeId}`,
         selected: new Set<number>(),
         seatById: new Map<number, SeatDto>(),
+        holdExpiresAt: null,
     };
 
     fetch(`${apiUrl}?action=seats&showtime_id=${encodeURIComponent(showtimeId)}`)
@@ -66,6 +69,8 @@ document.addEventListener('DOMContentLoaded', () => {
             restoreSelection(state);
             renderSeats(container, data.seats, state);
             updateSummary(state);
+            updateCountdown(state);
+            window.setInterval(() => updateCountdown(state), 1000);
             window.setInterval(() => refreshSeats(container, apiUrl, state), 5000);
         })
         .catch(() => {
@@ -82,9 +87,11 @@ document.addEventListener('DOMContentLoaded', () => {
                             state.selected.delete(id);
                         }
                     });
+                    state.holdExpiresAt = getSelectedHoldExpiry(state);
                     renderSeats(container, data.seats, state);
                     saveSelection(state);
                     updateSummary(state);
+                    updateCountdown(state);
                 })
                 .catch(() => undefined);
         }
@@ -233,8 +240,14 @@ function toggleSeat(seatId: number, seatEl: HTMLElement, state: SeatMapState): v
         }
         state.selected.add(seatId);
         seatEl.classList.add('selected');
-        updateSeatHold('hold_seat', seatId, state).then((held) => {
-            if (held) {
+        updateSeatHold('hold_seat', seatId, state).then((result) => {
+            if (result.held) {
+                const seat = state.seatById.get(seatId);
+                if (seat) {
+                    seat.hold_expires_at = result.expires_at;
+                }
+                state.holdExpiresAt = getSelectedHoldExpiry(state);
+                updateCountdown(state);
                 return;
             }
             state.selected.delete(seatId);
@@ -248,25 +261,29 @@ function toggleSeat(seatId: number, seatEl: HTMLElement, state: SeatMapState): v
         });
     }
 
-    function updateSeatHold(action: string, seatId: number, state: SeatMapState): Promise<boolean> {
-        const formData = new URLSearchParams({
-            showtime_id: state.storageKey.replace('seat-selection-', ''),
-            seat_id: String(seatId),
-        });
-        return fetch(`${document.getElementById('seat-map')?.getAttribute('data-api-url') || '/api.php'}?action=${action}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: formData.toString(),
-        }).then((res) => res.ok ? res.json() : Promise.reject(new Error('Không giữ được ghế')))
-            .then((data: { held?: boolean }) => action === 'release_seat' || data.held === true)
-            .catch(() => false);
-    }
-
     if (message) {
         message.textContent = '';
     }
     saveSelection(state);
     updateSummary(state);
+    updateCountdown(state);
+}
+
+function updateSeatHold(action: string, seatId: number, state: SeatMapState): Promise<{held: boolean; expires_at: number | null}> {
+    const formData = new URLSearchParams({
+        showtime_id: state.storageKey.replace('seat-selection-', ''),
+        seat_id: String(seatId),
+    });
+    return fetch(`${document.getElementById('seat-map')?.getAttribute('data-api-url') || '/api.php'}?action=${action}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: formData.toString(),
+    }).then((res) => res.ok ? res.json() : Promise.reject(new Error('Không giữ được ghế')))
+        .then((data: { held?: boolean; expires_at?: number | null }) => ({
+            held: action === 'release_seat' || data.held === true,
+            expires_at: data.expires_at || null,
+        }))
+        .catch(() => ({ held: false, expires_at: null }));
 }
 
 function updateSummary(state: SeatMapState): void {
@@ -299,6 +316,49 @@ function updateSummary(state: SeatMapState): void {
     if (submitBtn) {
         submitBtn.disabled = ids.length === 0;
     }
+}
+
+function getSelectedHoldExpiry(state: SeatMapState): number | null {
+    const expiries = Array.from(state.selected)
+        .map((id) => state.seatById.get(id)?.hold_expires_at || null)
+        .filter((expiry): expiry is number => expiry !== null);
+    return expiries.length ? Math.min(...expiries) : null;
+}
+
+function updateCountdown(state: SeatMapState): void {
+    const countdown = document.getElementById('hold-countdown');
+    if (!countdown) return;
+
+    state.holdExpiresAt = getSelectedHoldExpiry(state);
+    if (state.holdExpiresAt === null) {
+        countdown.textContent = '';
+        return;
+    }
+
+    const seconds = state.holdExpiresAt
+        ? Math.max(0, state.holdExpiresAt - Math.floor(Date.now() / 1000))
+        : 0;
+    if (seconds === 0) {
+        countdown.textContent = '';
+        if (state.selected.size > 0) {
+            state.selected.clear();
+            saveSelection(state);
+            updateSummary(state);
+            renderSeats(
+                document.getElementById('seat-map') as HTMLElement,
+                Array.from(state.seatById.values()),
+                state
+            );
+            const message = document.getElementById('seat-message');
+            if (message) {
+                message.textContent = 'Thời gian giữ ghế đã hết, vui lòng chọn lại.';
+            }
+        }
+        return;
+    }
+
+    const minutes = Math.floor(seconds / 60);
+    countdown.textContent = `Thời gian giữ ghế còn lại: ${minutes}:${String(seconds % 60).padStart(2, '0')}`;
 }
 
 /** Màn hình xác nhận: phim T13/T16/T18 phải tích ô xác nhận độ tuổi (server cũng kiểm tra lại). */

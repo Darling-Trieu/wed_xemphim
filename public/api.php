@@ -51,7 +51,8 @@ switch ($action) {
                 'is_aisle'   => $seat['status'] === 'aisle',
                 'is_booked'  => in_array($seatId, $bookedIds, true),
                 'is_held'    => array_key_exists($seatId, $heldSeats),
-                'held_by_me' => $heldSeats[$seatId] ?? false,
+                'held_by_me' => $heldSeats[$seatId]['held_by_me'] ?? false,
+                'hold_expires_at' => $heldSeats[$seatId]['expires_at'] ?? null,
             ];
         }, $seats);
 
@@ -88,7 +89,10 @@ switch ($action) {
             apiError('Ghế không thuộc phòng chiếu của suất này.');
         }
         $held = SeatHold::hold($showtimeId, $seatId, $sessionId);
-        echo json_encode(['held' => $held], JSON_UNESCAPED_UNICODE);
+        echo json_encode([
+            'held' => $held !== null,
+            'expires_at' => $held,
+        ], JSON_UNESCAPED_UNICODE);
         break;
 
     case 'release_seat':

@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
         storageKey: `seat-selection-${showtimeId}`,
         selected: new Set(),
         seatById: new Map(),
+        holdExpiresAt: null,
     };
     fetch(`${apiUrl}?action=seats&showtime_id=${encodeURIComponent(showtimeId)}`)
         .then((res) => {
@@ -29,6 +30,8 @@ document.addEventListener('DOMContentLoaded', () => {
         restoreSelection(state);
         renderSeats(container, data.seats, state);
         updateSummary(state);
+        updateCountdown(state);
+        window.setInterval(() => updateCountdown(state), 1000);
         window.setInterval(() => refreshSeats(container, apiUrl, state), 5000);
     })
         .catch(() => {
@@ -44,9 +47,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     state.selected.delete(id);
                 }
             });
+            state.holdExpiresAt = getSelectedHoldExpiry(state);
             renderSeats(container, data.seats, state);
             saveSelection(state);
             updateSummary(state);
+            updateCountdown(state);
         })
             .catch(() => undefined);
     }
@@ -177,9 +182,16 @@ function toggleSeat(seatId, seatEl, state) {
         }
         state.selected.add(seatId);
         seatEl.classList.add('selected');
-        updateSeatHold('hold_seat', seatId, state).then((held) => {
-            if (held)
+        updateSeatHold('hold_seat', seatId, state).then((result) => {
+            if (result.held) {
+                const seat = state.seatById.get(seatId);
+                if (seat) {
+                    seat.hold_expires_at = result.expires_at;
+                }
+                state.holdExpiresAt = getSelectedHoldExpiry(state);
+                updateCountdown(state);
                 return;
+            }
             state.selected.delete(seatId);
             seatEl.classList.remove('selected');
             seatEl.classList.add('held');
@@ -200,14 +212,53 @@ function toggleSeat(seatId, seatEl, state) {
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: formData.toString(),
         }).then((res) => res.ok ? res.json() : Promise.reject(new Error('Không giữ được ghế')))
-            .then((data) => action === 'release_seat' || data.held === true)
-            .catch(() => false);
+            .then((data) => ({
+            held: action === 'release_seat' || data.held === true,
+            expires_at: data.expires_at || null,
+    }))
+            .catch(() => ({ held: false, expires_at: null }));
     }
     if (message) {
         message.textContent = '';
     }
     saveSelection(state);
     updateSummary(state);
+    updateCountdown(state);
+}
+function getSelectedHoldExpiry(state) {
+    const expiries = Array.from(state.selected)
+        .map((id) => { var _a; return ((_a = state.seatById.get(id)) === null || _a === void 0 ? void 0 : _a.hold_expires_at) || null; })
+        .filter((expiry) => expiry !== null);
+    return expiries.length ? Math.min(...expiries) : null;
+}
+function updateCountdown(state) {
+    const countdown = document.getElementById('hold-countdown');
+    if (!countdown)
+        return;
+    state.holdExpiresAt = getSelectedHoldExpiry(state);
+    if (state.holdExpiresAt === null) {
+        countdown.textContent = '';
+        return;
+    }
+    const seconds = state.holdExpiresAt
+        ? Math.max(0, state.holdExpiresAt - Math.floor(Date.now() / 1000))
+        : 0;
+    if (seconds === 0) {
+        countdown.textContent = '';
+        if (state.selected.size > 0) {
+            state.selected.clear();
+            saveSelection(state);
+            updateSummary(state);
+            renderSeats(document.getElementById('seat-map'), Array.from(state.seatById.values()), state);
+            const message = document.getElementById('seat-message');
+            if (message) {
+                message.textContent = 'Thời gian giữ ghế đã hết, vui lòng chọn lại.';
+            }
+        }
+        return;
+    }
+    const minutes = Math.floor(seconds / 60);
+    countdown.textContent = `Thời gian giữ ghế còn lại: ${minutes}:${String(seconds % 60).padStart(2, '0')}`;
 }
 function updateSummary(state) {
     const input = document.getElementById('seat-ids-input');

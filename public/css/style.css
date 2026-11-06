@@ -585,6 +585,7 @@ textarea.form-control { resize: vertical; min-height: 100px; }
 .legend-box { width: 16px; height: 16px; border-radius: 4px; border: 1px solid var(--border); display: inline-block; background: var(--surface-alt); }
 .legend-box.inactive { border-style: dashed; background: repeating-linear-gradient(45deg, transparent 0 3px, rgba(255,255,255,0.12) 3px 6px); }
 .seat-message { min-height: 1.4em; color: var(--error-text); font-size: 0.9rem; margin-bottom: 8px; }
+.hold-countdown { color: #f8d477; font-weight: 600; }
 
 .price-table td.num, .price-table th.num, .data-table td.num, .data-table th.num { text-align: right; white-space: nowrap; }
 .age-confirm { display: flex; gap: 10px; align-items: flex-start; margin: 16px 0; padding: 12px; border: 1px solid var(--border); border-radius: 8px; }

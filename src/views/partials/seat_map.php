@@ -58,6 +58,7 @@ $legendStyle = ['VIP' => 'border-color:#f5b301;', 'Đôi' => 'border-color:#a855
             <div class="booking-summary">
                 <div>
                     <div id="selected-seats-label" class="movie-meta">Chưa chọn ghế nào</div>
+                    <div id="hold-countdown" class="movie-meta" aria-live="polite"></div>
                     <div class="total">Tạm tính: <span id="total-price">0đ</span></div>
                 </div>
                 <button type="submit" class="btn" id="submit-booking" disabled>

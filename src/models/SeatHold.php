@@ -2,24 +2,28 @@
 
 class SeatHold extends Model
 {
-    public const TTL_SECONDS = 10 * 60;
+    public const TTL_SECONDS = 5 * 60;
 
     public static function activeByShowtime(int $showtimeId, string $sessionId): array
     {
         self::deleteExpired();
         $stmt = self::db()->prepare(
-            'SELECT seat_id, session_id FROM seat_holds WHERE showtime_id = ? AND expires_at > NOW()'
+            'SELECT seat_id, session_id, UNIX_TIMESTAMP(expires_at) AS expires_at
+             FROM seat_holds WHERE showtime_id = ? AND expires_at > NOW()'
         );
         $stmt->execute([$showtimeId]);
 
         $holds = [];
         foreach ($stmt->fetchAll() as $row) {
-            $holds[(int) $row['seat_id']] = $row['session_id'] === $sessionId;
+            $holds[(int) $row['seat_id']] = [
+                'held_by_me' => $row['session_id'] === $sessionId,
+                'expires_at' => (int) $row['expires_at'],
+            ];
         }
         return $holds;
     }
 
-    public static function hold(int $showtimeId, int $seatId, string $sessionId): bool
+    public static function hold(int $showtimeId, int $seatId, string $sessionId): ?int
     {
         self::deleteExpired();
         $db = self::db();
@@ -34,7 +38,7 @@ class SeatHold extends Model
             $current = $stmt->fetchColumn();
             if ($current !== false && $current !== $sessionId) {
                 $db->rollBack();
-                return false;
+                return null;
             }
 
             $db->prepare(
@@ -47,7 +51,7 @@ class SeatHold extends Model
                 date('Y-m-d H:i:s', time() + self::TTL_SECONDS),
             ]);
             $db->commit();
-            return true;
+            return time() + self::TTL_SECONDS;
         } catch (Throwable $e) {
             if ($db->inTransaction()) {
                 $db->rollBack();
