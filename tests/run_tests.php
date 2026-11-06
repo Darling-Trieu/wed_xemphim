@@ -803,6 +803,25 @@ $soldSeat = seatId(2, 'C1');
 $admin->post('/admin/rooms/2/seats', ['csrf_token' => $admin->csrf('/admin/rooms/2/seats'), 'seat' => [$soldSeat => 'aisle']]);
 check('20', 'Ghế đã có vé không đổi thành lối đi được', scalar('SELECT status FROM seats WHERE id = ?', [$soldSeat]) === 'active');
 
+// ---------------------------------------------------------------- Ca 13: thống kê
+section('Ca 13 - Thống kê: chỉ tính đơn Đã xác nhận, Từ ngày > Đến ngày báo lỗi (FR12, UC15)');
+
+$today = date('Y-m-d');
+$r = $admin->get('/admin?from=' . $today . '&to=' . date('Y-m-d', strtotime('-1 day')));
+check('13', 'Từ ngày > Đến ngày -> "Đến ngày phải sau hoặc bằng Từ ngày"', str_contains($r['body'], 'Đến ngày phải sau hoặc bằng Từ ngày'));
+
+$st13 = makeShowtime($moviePG, $room20, strtotime('+11 days 10:00'), 75000);
+bookingCodeFrom(book($userA, $st13, [seatId($room20, 'A3'), seatId($room20, 'A4')]));
+$cancelCode = bookingCodeFrom(book($userB, $st13, [seatId($room20, 'B1')]));
+$admin->post("/admin/bookings/$cancelCode/cancel", ['csrf_token' => $admin->csrf("/admin/bookings/$cancelCode"), 'cancel_reason' => 'Test thống kê']);
+$stats = $admin->get("/admin?from=$today&to=$today&room_id=$room20")['body'];
+$card = fn (string $label) => preg_match('#<div class="value">([^<]+)</div><div class="label">' . $label . '#u', $stats, $m) ? $m[1] : '';
+check('13', 'Vé đã bán = 2 (bỏ 1 vé của đơn đã hủy)', $card('Vé đã bán') === '2', 'vé = ' . $card('Vé đã bán'));
+check('13', 'Doanh thu = 150.000đ theo giá trong vé', $card('Doanh thu') === '150.000đ', 'doanh thu = ' . $card('Doanh thu'));
+check('13', 'Có bảng theo phim và biểu đồ', str_contains($stats, 'Theo phim') && str_contains($stats, 'stats-chart'));
+$empty = $admin->get('/admin?from=2020-01-01&to=2020-01-02')['body'];
+check('13', 'Khoảng không có đơn -> "Không có dữ liệu trong khoảng đã chọn"', str_contains($empty, 'Không có dữ liệu trong khoảng đã chọn'));
+
 // ---------------------------------------------------------------- Lỗi hệ thống
 section('Lỗi CSDL không lộ chi tiết SQL');
 db()->exec('RENAME TABLE showtime_seats TO showtime_seats_tmp');
