@@ -145,6 +145,27 @@ img { max-width: 100%; }
 .main-nav a:hover, .auth-nav > a:not(.btn-light):hover,
 .main-nav a[aria-current="page"], .auth-nav > a[aria-current="page"] { color: var(--c-active); }
 
+.tickets-nav {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.notification-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: var(--primary);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+}
+
 /* Nút nền trắng ở header (Đăng nhập / Đăng ký / Đăng xuất) */
 .btn-light {
     display: inline-flex;

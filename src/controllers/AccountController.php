@@ -93,7 +93,9 @@ class AccountController extends Controller
     public function bookings(): void
     {
         Auth::requireLogin();
-        $bookings = Booking::allByUser(Auth::id());
+        $userId = Auth::id();
+        Booking::markCancelledAsSeen($userId);
+        $bookings = Booking::allByUser($userId);
 
         $this->view('account/bookings', [
             'pageTitle' => 'Lịch sử đặt vé',

@@ -238,6 +238,49 @@ class Booking extends Model
         return $stmt->fetchAll();
     }
 
+    public static function countCancelledByUser(int $userId): int
+    {
+        $seenIds = $_SESSION['cancelled_bookings_seen'][$userId] ?? [];
+        if ($seenIds === true) {
+            $seenIds = self::cancelledIdsByUser($userId);
+            $_SESSION['cancelled_bookings_seen'][$userId] = $seenIds;
+            return 0;
+        }
+        if (!is_array($seenIds)) {
+            $seenIds = [];
+        }
+        $unseenCondition = $seenIds
+            ? ' AND id NOT IN (' . self::placeholders(count($seenIds)) . ')'
+            : '';
+        $stmt = self::db()->prepare(
+            "SELECT COUNT(*) FROM bookings
+             WHERE user_id = ? AND status = 'cancelled'
+             {$unseenCondition}"
+        );
+        $params = array_merge([$userId], $seenIds);
+        $stmt->execute($params);
+        return (int) $stmt->fetchColumn();
+    }
+
+    public static function markCancelledAsSeen(int $userId): void
+    {
+        $_SESSION['cancelled_bookings_seen'][$userId] = self::cancelledIdsByUser($userId);
+    }
+
+    private static function placeholders(int $count): string
+    {
+        return $count > 0 ? implode(',', array_fill(0, $count, '?')) : 'NULL';
+    }
+
+    private static function cancelledIdsByUser(int $userId): array
+    {
+        $stmt = self::db()->prepare(
+            "SELECT id FROM bookings WHERE user_id = ? AND status = 'cancelled'"
+        );
+        $stmt->execute([$userId]);
+        return array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
+    }
+
     public static function allWithDetails(): array
     {
         return self::db()->query(self::SELECT_BOOKING . ' ORDER BY b.created_at DESC, b.id DESC')->fetchAll();

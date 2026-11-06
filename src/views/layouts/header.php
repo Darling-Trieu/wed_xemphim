@@ -13,6 +13,8 @@
 </head>
 <body>
 <?php
+require_once dirname(__DIR__, 2) . '/models/Booking.php';
+
 // Mục menu đang mở được tô đỏ (giống thiết kế CineQ)
 $navPath = substr((string) parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH), strlen(BASE_URL)) ?: '/';
 $navStatus = $_GET['status'] ?? null;
@@ -38,7 +40,17 @@ $navCurrent = static function (bool $active): string {
             </nav>
             <div class="auth-nav">
                 <?php if (Auth::check()): ?>
-                    <a href="<?= BASE_URL ?>/account/bookings"<?= $navCurrent(str_starts_with($navPath, '/account/bookings')) ?>>Vé của tôi</a>
+                    <?php
+                    $cancelledBookingCount = !Auth::isAdmin()
+                        ? Booking::countCancelledByUser(Auth::id())
+                        : 0;
+                    ?>
+                    <a class="tickets-nav" href="<?= BASE_URL ?>/account/bookings"<?= $navCurrent(str_starts_with($navPath, '/account/bookings')) ?>>
+                        <span>Vé của tôi</span>
+                        <?php if ($cancelledBookingCount > 0): ?>
+                            <span class="notification-badge" aria-label="<?= $cancelledBookingCount ?> vé đã bị hủy"><?= $cancelledBookingCount ?></span>
+                        <?php endif; ?>
+                    </a>
                     <a href="<?= BASE_URL ?>/account"<?= $navCurrent($navPath === '/account') ?>>Xin chào, <?= htmlspecialchars(Auth::user()['full_name']) ?></a>
                     <form class="logout-form" method="post" action="<?= BASE_URL ?>/logout">
                         <?= Csrf::field() ?>
