@@ -174,6 +174,22 @@ function makeShowtime(int $movieId, int $roomId, int $startTs, int $basePrice = 
     return (int) db()->lastInsertId();
 }
 
+/** Gọi API giữ / nhả ghế như trình duyệt: CSRF token lấy từ data-csrf của sơ đồ ghế. */
+function holdSeat(Client $c, int $showtimeId, int $seatId, string $action = 'hold_seat', bool $withCsrf = true): array
+{
+    $data = ['showtime_id' => $showtimeId, 'seat_id' => $seatId];
+    if ($withCsrf) {
+        $page = $c->get("/showtimes/$showtimeId/seats")['body'];
+        $data['csrf_token'] = preg_match('/data-csrf="([^"]+)"/', $page, $m) ? $m[1] : '';
+    }
+    return $c->post("/api.php?action=$action", $data);
+}
+
+function holdOk(array $response): bool
+{
+    return (json_decode($response['body'], true)['held'] ?? false) === true;
+}
+
 /** Đặt vé qua giao diện web: màn hình xác nhận -> xác nhận. Trả về response của bước xác nhận. */
 function book(Client $c, int $showtimeId, array $seatIds, array $extra = ['age_confirmed' => '1']): array
 {
@@ -186,7 +202,7 @@ function book(Client $c, int $showtimeId, array $seatIds, array $extra = ['age_c
         return $confirm;
     }
     foreach ($seatIds as $seatId) {
-        $hold = $c->post('/api.php?action=hold_seat', ['showtime_id' => $showtimeId, 'seat_id' => $seatId]);
+        $hold = holdSeat($c, $showtimeId, $seatId, 'hold_seat');
         if (!(json_decode($hold['body'], true)['held'] ?? false)) {
             throw new RuntimeException("Không giữ được ghế $seatId bằng session của client kiểm thử.");
         }
@@ -274,19 +290,46 @@ $r = $userA->post("/booking/$holdShowtime", $holdData);
 check('hold', 'Không giữ ghế: không được tạo đơn', $r['status'] === 302
     && str_contains(flashError($userA->follow($r)['body']), 'hết thời gian giữ')
     && (int) scalar('SELECT COUNT(*) FROM bookings') === $beforeHolds);
-$userB->post('/api.php?action=hold_seat', ['showtime_id' => $holdShowtime, 'seat_id' => $holdSeat]);
+holdSeat($userB, $holdShowtime, $holdSeat, 'hold_seat');
 $r = $userA->post("/booking/$holdShowtime", $holdData);
 check('hold', 'Hold của session khác: không được tạo đơn', $r['status'] === 302
     && str_contains(flashError($userA->follow($r)['body']), 'hết thời gian giữ')
     && (int) scalar('SELECT COUNT(*) FROM bookings') === $beforeHolds);
-$userB->post('/api.php?action=release_seat', ['showtime_id' => $holdShowtime, 'seat_id' => $holdSeat]);
-$userA->post('/api.php?action=hold_seat', ['showtime_id' => $holdShowtime, 'seat_id' => $holdSeat]);
+holdSeat($userB, $holdShowtime, $holdSeat, 'release_seat');
+holdSeat($userA, $holdShowtime, $holdSeat, 'hold_seat');
 db()->prepare('UPDATE seat_holds SET expires_at=DATE_SUB(NOW(), INTERVAL 1 SECOND) WHERE showtime_id=?')->execute([$holdShowtime]);
 $r = $userA->post("/booking/$holdShowtime", $holdData);
 check('hold', 'Hold hết hạn: không được tạo đơn', $r['status'] === 302
     && str_contains(flashError($userA->follow($r)['body']), 'hết thời gian giữ')
     && (int) scalar('SELECT COUNT(*) FROM bookings') === $beforeHolds);
 check('hold', 'Giữ lại đúng session thì đặt được', bookingCodeFrom(book($userA, $holdShowtime, [$holdSeat])) !== null);
+
+$seatX = seatId(1, 'B1');
+$r = holdSeat($userA, $holdShowtime, $seatX, 'hold_seat', false);
+check('hold', 'API giữ ghế không có CSRF token -> 419, không giữ ghế', $r['status'] === 419
+    && (int) scalar('SELECT COUNT(*) FROM seat_holds WHERE showtime_id = ? AND seat_id = ?', [$holdShowtime, $seatX]) === 0);
+
+$greedy = new Client($A);
+$heldCount = 0;
+foreach (['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'C8', 'D1'] as $label) {
+    $last = holdSeat($greedy, $holdShowtime, seatId(1, $label));
+    $heldCount += holdOk($last) ? 1 : 0;
+}
+check('hold', 'Một phiên chỉ giữ tối đa 8 ghế / suất (ghế thứ 9 bị từ chối kèm lý do)', $heldCount === 8
+    && str_contains(json_decode($last['body'], true)['error'] ?? '', 'tối đa 8'), "giữ được $heldCount ghế");
+$greedy->login('huy.pham@example.com', 'user123');
+$greedy->post('/logout', ['csrf_token' => $greedy->csrf('/account')]);
+check('hold', 'Đăng xuất -> nhả toàn bộ ghế đang giữ', (int) scalar('SELECT COUNT(*) FROM seat_holds WHERE showtime_id = ?', [$holdShowtime]) === 0);
+
+$guestHold = new Client($A);
+$guestSeat = seatId(1, 'D5');
+check('hold', 'Khách chưa đăng nhập giữ được ghế', holdOk(holdSeat($guestHold, $holdShowtime, $guestSeat)));
+$guestHold->login('bao.dang@example.com', 'user123');
+$seatsJson = json_decode($guestHold->get("/api.php?action=seats&showtime_id=$holdShowtime")['body'], true);
+$mine = array_values(array_filter($seatsJson['seats'], fn ($s) => $s['id'] === $guestSeat))[0] ?? [];
+check('hold', 'Đăng nhập xong: ghế vẫn là của mình (giữ ghế đi theo session mới)', ($mine['held_by_me'] ?? false) === true);
+$r = $guestHold->post("/booking/$holdShowtime", ['csrf_token' => $guestHold->csrf('/account'), 'seat_ids' => (string) $guestSeat]);
+check('hold', 'Khách chọn ghế -> đăng nhập -> đặt được đúng ghế đó', bookingCodeFrom($r) !== null, flashError($guestHold->follow($r)['body']));
 
 // ---------------------------------------------------------------- Ca 1: đặt cùng ghế đồng thời
 section('Ca 1 - Hai phiên đặt cùng 1 ghế gần như đồng thời (BR01)');
@@ -295,8 +338,8 @@ $st1 = makeShowtime($moviePG, 1, strtotime('+2 days 10:00'));
 $seat = seatId(1, 'B5');
 $tokA = $userA->csrf("/showtimes/$st1/seats");
 $tokB = $userB->csrf("/showtimes/$st1/seats");
-$holdA = $userA->post('/api.php?action=hold_seat', ['showtime_id' => $st1, 'seat_id' => $seat]);
-$holdB = $userB->post('/api.php?action=hold_seat', ['showtime_id' => $st1, 'seat_id' => $seat]);
+$holdA = holdSeat($userA, $st1, $seat, 'hold_seat');
+$holdB = holdSeat($userB, $st1, $seat, 'hold_seat');
 check('1', 'Session A giữ ghế; session B không lấy được ghế đang giữ',
     (json_decode($holdA['body'], true)['held'] ?? false) === true
     && (json_decode($holdB['body'], true)['held'] ?? true) === false);

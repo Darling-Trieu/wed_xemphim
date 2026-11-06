@@ -4,7 +4,7 @@ class Auth
 {
     public static function login(array $user): void
     {
-        session_regenerate_id(true);
+        self::regenerateSession();
         $_SESSION['user'] = [
             'id'        => $user['id'],
             'full_name' => $user['full_name'],
@@ -13,8 +13,22 @@ class Auth
         ];
     }
 
+    /**
+     * Đổi session ID (chống session fixation). Ghế khách đang giữ gắn với session ID nên được
+     * chuyển sang ID mới, để khách chọn ghế rồi mới đăng nhập vẫn đặt được đúng ghế đó.
+     */
+    public static function regenerateSession(): void
+    {
+        $oldId = session_id();
+        session_regenerate_id(true);
+        Database::getConnection()
+            ->prepare('UPDATE seat_holds SET session_id = ? WHERE session_id = ?')
+            ->execute([session_id(), $oldId]);
+    }
+
     public static function logout(): void
     {
+        Database::getConnection()->prepare('DELETE FROM seat_holds WHERE session_id = ?')->execute([session_id()]);
         $_SESSION = [];
         if (ini_get('session.use_cookies')) {
             $params = session_get_cookie_params();

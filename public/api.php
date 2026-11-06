@@ -4,6 +4,7 @@ require dirname(__DIR__) . '/src/config/config.php';
 require dirname(__DIR__) . '/src/core/Database.php';
 require dirname(__DIR__) . '/src/core/Model.php';
 require dirname(__DIR__) . '/src/core/Auth.php';
+require dirname(__DIR__) . '/src/core/Csrf.php';
 require dirname(__DIR__) . '/src/core/ErrorHandler.php';
 require_once dirname(__DIR__) . '/src/models/Showtime.php';
 require_once dirname(__DIR__) . '/src/models/Seat.php';
@@ -21,6 +22,18 @@ function apiError(string $message, int $status = 400): void
     http_response_code($status);
     echo json_encode(['error' => $message], JSON_UNESCAPED_UNICODE);
     exit;
+}
+
+/** API thay đổi dữ liệu: chỉ nhận POST có CSRF token của session. */
+function requirePostWithCsrf(): void
+{
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        apiError('Phương thức không hợp lệ.', 405);
+    }
+    $token = $_POST['csrf_token'] ?? null;
+    if (!Csrf::verify(is_string($token) ? $token : null)) {
+        apiError('Phiên làm việc đã hết hạn, vui lòng tải lại trang.', 419);
+    }
 }
 
 $action = $_GET['action'] ?? '';
@@ -71,34 +84,39 @@ switch ($action) {
         break;
 
     case 'hold_seat':
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            apiError('Phương thức không hợp lệ.', 405);
-        }
+        requirePostWithCsrf();
         $showtimeId = (int) ($_POST['showtime_id'] ?? 0);
         $seatId = (int) ($_POST['seat_id'] ?? 0);
         $showtime = $showtimeId ? Showtime::find($showtimeId) : null;
         if (!$showtime || $seatId <= 0) {
             apiError('Dữ liệu giữ ghế không hợp lệ.');
         }
-        if (in_array($seatId, BookingSeat::bookedSeatIds($showtimeId), true)) {
-            echo json_encode(['held' => false], JSON_UNESCAPED_UNICODE);
-            break;
+        if (Showtime::isSaleClosed($showtime)) {
+            apiError('Suất chiếu đã đóng bán.');
         }
         $seat = Seat::find($seatId);
         if (!$seat || (int) $seat['room_id'] !== (int) $showtime['room_id'] || $seat['status'] !== 'active') {
             apiError('Ghế không thuộc phòng chiếu của suất này.');
         }
-        $held = SeatHold::hold($showtimeId, $seatId, $sessionId);
+        if (in_array($seatId, BookingSeat::bookedSeatIds($showtimeId), true)) {
+            echo json_encode(['held' => false, 'error' => 'Ghế đã có người đặt.'], JSON_UNESCAPED_UNICODE);
+            break;
+        }
+        try {
+            $expiresAt = SeatHold::hold($showtimeId, $seatId, $sessionId);
+        } catch (BookingException $e) {
+            echo json_encode(['held' => false, 'error' => $e->getMessage()], JSON_UNESCAPED_UNICODE);
+            break;
+        }
         echo json_encode([
-            'held' => $held !== null,
-            'expires_at' => $held,
+            'held'       => $expiresAt !== null,
+            'expires_at' => $expiresAt,
+            'error'      => $expiresAt === null ? 'Ghế vừa được người khác giữ, vui lòng chọn ghế khác.' : null,
         ], JSON_UNESCAPED_UNICODE);
         break;
 
     case 'release_seat':
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            apiError('Phương thức không hợp lệ.', 405);
-        }
+        requirePostWithCsrf();
         SeatHold::release(
             (int) ($_POST['showtime_id'] ?? 0),
             (int) ($_POST['seat_id'] ?? 0),
