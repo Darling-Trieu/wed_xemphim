@@ -2,6 +2,17 @@
 
 class Movie extends Model
 {
+    public const STATUSES = [
+        'now_showing' => 'Đang chiếu',
+        'coming_soon' => 'Sắp chiếu',
+        'ended'       => 'Ngừng chiếu',
+    ];
+
+    public static function statusLabel(string $status): string
+    {
+        return self::STATUSES[$status] ?? $status;
+    }
+
     public static function allByStatus(?string $status = null): array
     {
         if ($status === null) {

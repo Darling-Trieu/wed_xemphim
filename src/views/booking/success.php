@@ -12,7 +12,7 @@
         <dd><?= htmlspecialchars(date('d/m/Y', strtotime($booking['show_date']))) ?> lúc <?= htmlspecialchars(substr($booking['start_time'], 0, 5)) ?></dd>
         <dt>Ghế</dt>
         <dd><?= htmlspecialchars(implode(', ', array_column($seats, 'seat_label'))) ?></dd>
-        <dt>Tổng tiền</dt><dd><strong><?= number_format($booking['total_amount'], 0, ',', '.') ?>đ</strong></dd>
+        <dt>Tổng tiền</dt><dd><strong><?= money($booking['total_amount']) ?></strong></dd>
         <dt>Trạng thái</dt><dd><?= Booking::statusLabel($booking) ?></dd>
         <dt>Thanh toán</dt><dd><?= Booking::paymentLabel($booking['payment_status']) ?> (mô phỏng)</dd>
     </dl>

@@ -17,7 +17,7 @@
             <dt>Khởi chiếu</dt>
             <dd><?= $movie['release_date'] ? htmlspecialchars(date('d/m/Y', strtotime($movie['release_date']))) : 'Đang cập nhật' ?></dd>
             <dt>Trạng thái</dt>
-            <dd><?= $movie['status'] === 'now_showing' ? 'Đang chiếu' : ($movie['status'] === 'coming_soon' ? 'Sắp chiếu' : 'Ngừng chiếu') ?></dd>
+            <dd><?= htmlspecialchars(Movie::statusLabel($movie['status'])) ?></dd>
         </dl>
         <p><?= nl2br(htmlspecialchars($movie['description'] ?? '')) ?></p>
 

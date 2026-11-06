@@ -58,7 +58,7 @@ class AdminTicketController extends Controller
         }
 
         $this->flash('success', 'Đã hủy đơn vé ' . $code . ' và hoàn '
-            . number_format($booking['total_amount'], 0, ',', '.') . 'đ cho khách. Ghế đã được trả lại.');
+            . money($booking['total_amount']) . ' cho khách. Ghế đã được trả lại.');
         $this->redirect('/admin/bookings');
     }
 }

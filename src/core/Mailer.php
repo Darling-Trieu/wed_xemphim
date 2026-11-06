@@ -29,7 +29,7 @@ class Mailer
             $seats
         );
         $seatList = implode(', ', $seatLabels);
-        $total = number_format((float) $booking['total_amount'], 0, ',', '.') . 'đ';
+        $total = money($booking['total_amount']);
 
         $subject = 'Xac nhan dat ve - ' . $booking['booking_code'];
         $body = <<<HTML

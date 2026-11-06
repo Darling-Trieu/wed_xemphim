@@ -315,16 +315,6 @@ class Booking extends Model
         return (float) self::db()->query("SELECT COALESCE(SUM(refund_amount),0) FROM bookings WHERE status = 'cancelled'")->fetchColumn();
     }
 
-    public static function countPaid(): int
-    {
-        return (int) self::db()->query("SELECT COUNT(*) FROM bookings WHERE status = 'paid'")->fetchColumn();
-    }
-
-    public static function totalRevenue(): float
-    {
-        return (float) self::db()->query("SELECT COALESCE(SUM(total_amount),0) FROM bookings WHERE status = 'paid'")->fetchColumn();
-    }
-
     /** Doanh thu theo từng ngày trong N ngày gần nhất, dùng cho biểu đồ admin. */
     public static function revenueSeries(int $days = 14): array
     {

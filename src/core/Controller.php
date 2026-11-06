@@ -43,17 +43,16 @@ abstract class Controller
         exit;
     }
 
-    protected function json(array $data, int $status = 200): void
-    {
-        http_response_code($status);
-        header('Content-Type: application/json; charset=utf-8');
-        echo json_encode($data, JSON_UNESCAPED_UNICODE);
-        exit;
-    }
-
+    /**
+     * Giá trị đơn từ POST/GET (đã trim). Gửi mảng (vd name[]=x) cho trường đơn thì coi như
+     * không gửi, để tránh lỗi "Array to string" thành lỗi 500. Trường mảng đọc thẳng $_POST.
+     */
     protected function input(string $key, $default = null)
     {
         $value = $_POST[$key] ?? $_GET[$key] ?? $default;
+        if (is_array($value)) {
+            return $default;
+        }
         return is_string($value) ? trim($value) : $value;
     }
 

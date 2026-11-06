@@ -6,6 +6,7 @@ require dirname(__DIR__) . '/src/core/Model.php';
 require dirname(__DIR__) . '/src/core/Auth.php';
 require dirname(__DIR__) . '/src/core/Csrf.php';
 require dirname(__DIR__) . '/src/core/ErrorHandler.php';
+require dirname(__DIR__) . '/src/core/helpers.php';
 require_once dirname(__DIR__) . '/src/models/Showtime.php';
 require_once dirname(__DIR__) . '/src/models/Seat.php';
 require_once dirname(__DIR__) . '/src/models/BookingSeat.php';

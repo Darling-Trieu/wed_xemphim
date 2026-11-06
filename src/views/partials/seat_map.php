@@ -27,7 +27,7 @@ $legendStyle = ['VIP' => 'border-color:#f5b301;', 'Đôi' => 'border-color:#a855
         <?php foreach ($seatTypes as $type): ?>
             <span><span class="legend-box" style="<?= $legendStyle[$type['name']] ?? '' ?>"></span>
                 <?= htmlspecialchars($type['name'] === 'Đôi' ? 'Ghế đôi (2 người)' : $type['name']) ?>:
-                <?= number_format((int) $showtime['base_price'] + (int) $type['surcharge'], 0, ',', '.') ?>đ</span>
+                <?= money((int) $showtime['base_price'] + (int) $type['surcharge']) ?></span>
         <?php endforeach; ?>
         <span><span class="legend-box" style="background:#2a2a2e;"></span> Đã bán</span>
         <span><span class="legend-box" style="background:#6b4f00;border-color:#b8860b;"></span> Đang được giữ</span>

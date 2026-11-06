@@ -8,6 +8,7 @@ require dirname(__DIR__) . '/src/core/Auth.php';
 require dirname(__DIR__) . '/src/core/Csrf.php';
 require dirname(__DIR__) . '/src/core/Router.php';
 require dirname(__DIR__) . '/src/core/ErrorHandler.php';
+require dirname(__DIR__) . '/src/core/helpers.php';
 
 ErrorHandler::register();
 Auth::syncWithDatabase();

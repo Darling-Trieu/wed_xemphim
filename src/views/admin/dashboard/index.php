@@ -6,7 +6,6 @@
  * @var array $byDay
  * @var array $byMovie
  */
-$money = static fn (int $amount): string => number_format($amount, 0, ',', '.') . 'đ';
 $dayChart = [
     'labels'  => array_map(static fn ($d) => date('d/m', strtotime($d['day'])), $byDay),
     'revenue' => array_column($byDay, 'revenue'),
@@ -47,7 +46,7 @@ $hasData = $summary && $summary['tickets'] > 0;
 <?php else: ?>
     <div class="stat-cards">
         <div class="stat-card"><div class="value"><?= (int) $summary['tickets'] ?></div><div class="label">Vé đã bán</div></div>
-        <div class="stat-card"><div class="value"><?= $money($summary['revenue']) ?></div><div class="label">Doanh thu</div></div>
+        <div class="stat-card"><div class="value"><?= money($summary['revenue']) ?></div><div class="label">Doanh thu</div></div>
         <div class="stat-card"><div class="value"><?= (int) $summary['bookings'] ?></div><div class="label">Đơn đã xác nhận</div></div>
         <div class="stat-card"><div class="value"><?= (int) $movieCount ?></div><div class="label">Tổng số phim</div></div>
         <div class="stat-card"><div class="value"><?= (int) $customerCount ?></div><div class="label">Khách hàng</div></div>
@@ -75,7 +74,7 @@ $hasData = $summary && $summary['tickets'] > 0;
                         <tr>
                             <td><?= htmlspecialchars($row['movie_title']) ?></td>
                             <td class="num"><?= (int) $row['tickets'] ?></td>
-                            <td class="num"><?= $money($row['revenue']) ?></td>
+                            <td class="num"><?= money($row['revenue']) ?></td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>
@@ -91,7 +90,7 @@ $hasData = $summary && $summary['tickets'] > 0;
                         <tr>
                             <td><?= htmlspecialchars(date('d/m/Y', strtotime($row['day']))) ?></td>
                             <td class="num"><?= (int) $row['tickets'] ?></td>
-                            <td class="num"><?= $money($row['revenue']) ?></td>
+                            <td class="num"><?= money($row['revenue']) ?></td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>

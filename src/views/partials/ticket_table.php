@@ -7,7 +7,7 @@
                 <tr>
                     <td><?= htmlspecialchars($s['seat_label']) ?></td>
                     <td><?= htmlspecialchars($s['seat_type_name']) ?></td>
-                    <td class="num"><?= number_format($s['price'], 0, ',', '.') ?>đ</td>
+                    <td class="num"><?= money($s['price']) ?></td>
                 </tr>
             <?php endforeach; ?>
         </tbody>

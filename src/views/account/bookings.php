@@ -20,11 +20,11 @@
                 <td><?= htmlspecialchars($b['movie_title']) ?></td>
                 <td><?= htmlspecialchars($b['cinema_name']) ?></td>
                 <td><?= htmlspecialchars(date('d/m/Y', strtotime($b['show_date']))) ?> <?= htmlspecialchars(substr($b['start_time'], 0, 5)) ?></td>
-                <td class="num"><?= number_format($b['total_amount'], 0, ',', '.') ?>đ</td>
+                <td class="num"><?= money($b['total_amount']) ?></td>
                 <td>
                     <?= Booking::statusLabel($b) ?>
                     <?php if ($b['refund_amount'] !== null): ?>
-                        <br><span class="movie-meta">Hoàn <?= number_format($b['refund_amount'], 0, ',', '.') ?>đ</span>
+                        <br><span class="movie-meta">Hoàn <?= money($b['refund_amount']) ?></span>
                     <?php endif; ?>
                 </td>
                 <td><a href="<?= BASE_URL ?>/account/bookings/<?= htmlspecialchars($b['booking_code']) ?>">Xem</a></td>

@@ -9,10 +9,10 @@
         <dt>Thời điểm đặt</dt><dd><?= htmlspecialchars(date('d/m/Y H:i', strtotime($booking['created_at']))) ?></dd>
         <dt>Trạng thái</dt><dd><?= Booking::statusLabel($booking) ?></dd>
         <dt>Thanh toán</dt><dd><?= Booking::paymentLabel($booking['payment_status']) ?> (mô phỏng)</dd>
-        <dt>Tổng tiền</dt><dd><strong><?= number_format($booking['total_amount'], 0, ',', '.') ?>đ</strong></dd>
+        <dt>Tổng tiền</dt><dd><strong><?= money($booking['total_amount']) ?></strong></dd>
         <?php if ($booking['refund_amount'] !== null): ?>
             <dt>Đã hoàn tiền</dt>
-            <dd><strong><?= number_format($booking['refund_amount'], 0, ',', '.') ?>đ</strong> lúc <?= htmlspecialchars(date('d/m/Y H:i', strtotime($booking['refunded_at']))) ?></dd>
+            <dd><strong><?= money($booking['refund_amount']) ?></strong> lúc <?= htmlspecialchars(date('d/m/Y H:i', strtotime($booking['refunded_at']))) ?></dd>
             <?php if (!empty($booking['cancel_reason'])): ?>
                 <dt>Lý do hủy</dt><dd><?= htmlspecialchars($booking['cancel_reason']) ?></dd>
             <?php endif; ?>

@@ -238,9 +238,4 @@ class Showtime extends Model
             $data['start_time'], $data['end_time'], $data['base_price'], $id,
         ]);
     }
-
-    public static function count(): int
-    {
-        return (int) self::db()->query('SELECT COUNT(*) FROM showtimes')->fetchColumn();
-    }
 }

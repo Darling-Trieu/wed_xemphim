@@ -9,7 +9,6 @@ class AdminMovieController extends Controller
     private const ALLOWED_MIME = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
     private const MAX_SIZE = 3 * 1024 * 1024; // 3MB
     private const AGE_RATINGS = ['P', 'K', 'T13', 'T16', 'T18'];
-    private const STATUSES = ['now_showing', 'coming_soon', 'ended'];
 
     public function index(): void
     {
@@ -144,7 +143,7 @@ class AdminMovieController extends Controller
         if (!in_array($data['age_rating'], self::AGE_RATINGS, true)) {
             return 'Nhãn độ tuổi không hợp lệ.';
         }
-        if (!in_array($data['status'], self::STATUSES, true)) {
+        if (!isset(Movie::STATUSES[$data['status']])) {
             return 'Trạng thái phim không hợp lệ.';
         }
         if ($data['release_date']) {

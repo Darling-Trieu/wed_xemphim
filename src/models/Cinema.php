@@ -54,9 +54,4 @@ class Cinema extends Model
     {
         self::db()->prepare('DELETE FROM cinemas WHERE id = ?')->execute([$id]);
     }
-
-    public static function count(): int
-    {
-        return (int) self::db()->query('SELECT COUNT(*) FROM cinemas')->fetchColumn();
-    }
 }

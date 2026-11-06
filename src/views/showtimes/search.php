@@ -56,7 +56,7 @@ $selected = static fn (string $key, int $id): string => $filters[$key] === $id ?
                 </div>
             </div>
             <div>
-                <span class="price"><?= number_format($st['base_price'], 0, ',', '.') ?>đ</span>
+                <span class="price"><?= money($st['base_price']) ?></span>
                 <?php if ($closed): ?>
                     <span class="btn btn-small btn-secondary" aria-disabled="true">Đã đóng bán</span>
                 <?php else: ?>

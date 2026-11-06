@@ -23,15 +23,6 @@ class Seat extends Model
         return $row ?: null;
     }
 
-    public static function create(int $roomId, string $row, int $number, int $seatTypeId): int
-    {
-        $stmt = self::db()->prepare(
-            'INSERT INTO seats (room_id, seat_row, seat_number, seat_type_id, status) VALUES (?, ?, ?, ?, "active")'
-        );
-        $stmt->execute([$roomId, $row, $number, $seatTypeId]);
-        return (int) self::db()->lastInsertId();
-    }
-
     /** active = ghế bình thường, inactive = Ngừng sử dụng, aisle = ô lối đi (không phải ghế). */
     public const STATUSES = ['active', 'inactive', 'aisle'];
 

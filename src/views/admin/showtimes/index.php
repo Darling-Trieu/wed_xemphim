@@ -15,7 +15,7 @@
                 <td><?= htmlspecialchars($st['cinema_name']) ?> - <?= htmlspecialchars($st['room_name']) ?></td>
                 <td><?= htmlspecialchars(date('d/m/Y', strtotime($st['show_date']))) ?></td>
                 <td><?= htmlspecialchars(substr($st['start_time'], 0, 5)) ?> - <?= htmlspecialchars(substr($st['end_time'], 0, 5)) ?></td>
-                <td class="num"><?= number_format($st['base_price'], 0, ',', '.') ?>đ</td>
+                <td class="num"><?= money($st['base_price']) ?></td>
                 <td class="num"><?= (int) $st['sold_count'] ?></td>
                 <td><?= htmlspecialchars(Showtime::statusLabel($st)) ?></td>
                 <td class="actions-cell">

@@ -18,10 +18,6 @@ define('UPLOAD_DIR', dirname(__DIR__, 2) . '/public/uploads/movies');
 // Đường dẫn public tương ứng để nhúng vào thẻ <img>.
 define('UPLOAD_URL', BASE_URL . '/uploads/movies');
 
-// Thời gian chờ tối đa (giây) không dùng trong luồng hiện tại (khóa ghế ngay khi đặt),
-// giữ lại làm hằng số cấu hình cho rõ ràng nếu sau này cần mở rộng.
-define('BOOKING_LOCK_SECONDS', 0);
-
 // Quy tắc đặt vé (BR03, BR04)
 define('SALE_CLOSE_MINUTES', 15);   // đóng bán trước giờ chiếu
 define('MAX_SEATS_PER_BOOKING', 8);

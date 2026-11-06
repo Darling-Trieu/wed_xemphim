@@ -31,12 +31,12 @@ $needAge = Booking::requiresAgeConfirm($showtime['age_rating']);
                     <tr>
                         <td><?= htmlspecialchars($t['seat_label']) ?></td>
                         <td><?= htmlspecialchars($t['seat_type_name']) ?></td>
-                        <td class="num"><?= number_format($t['price'], 0, ',', '.') ?>đ</td>
+                        <td class="num"><?= money($t['price']) ?></td>
                     </tr>
                 <?php endforeach; ?>
                 <tr>
                     <td colspan="2"><strong>Tổng cộng (<?= count($tickets) ?> ghế)</strong></td>
-                    <td class="num"><strong><?= number_format($total, 0, ',', '.') ?>đ</strong></td>
+                    <td class="num"><strong><?= money($total) ?></strong></td>
                 </tr>
             </tbody>
         </table>
