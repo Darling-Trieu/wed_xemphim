@@ -25,10 +25,15 @@
    ```
    Khung giờ đã có suất được bỏ qua nên chạy lại nhiều lần không bị trùng lịch.
 
-   Nếu CSDL đã tồn tại, chạy thêm migration giữ ghế tạm:
+   Nếu đang dùng CSDL cũ (không muốn import lại), chạy các migration còn thiếu **theo thứ tự**
+   (nên sao lưu trước bằng `mysqldump`):
    ```
+   mysql -u root --default-character-set=utf8mb4 movie_booking < database/migrations/001_spec_alignment.sql
+   mysql -u root --default-character-set=utf8mb4 movie_booking < database/migrations/002_seed_demo.sql
+   mysql -u root --default-character-set=utf8mb4 movie_booking < database/migrations/003_seed_showtimes.sql
    mysql -u root --default-character-set=utf8mb4 movie_booking < database/migrations/004_create_seat_holds.sql
    ```
+   Thiếu bảng của migration nào thì các trang liên quan báo "Lỗi hệ thống" (chi tiết ghi ở `logs/app.log`).
 
 3. **Cấu hình kết nối CSDL** tại `src/config/database.php` nếu MySQL của bạn khác mặc định Laragon (user `root`, không mật khẩu, cổng `3306`).
 
@@ -53,19 +58,33 @@
 | Vai trò | Email | Mật khẩu |
 |---|---|---|
 | Admin | admin@cinema.com | admin123 |
-| Khách hàng | user@example.com | user123 |
+| Khách hàng | user@example.com (hoặc SĐT 0911111111) | user123 |
+| Khách hàng 2 (demo 2 phiên) | ngoc.tran@example.com | user123 |
+
+## Kiểm thử và tài liệu
+
+- Kiểm thử tự động (cần MySQL đang chạy; tự tạo CSDL riêng `movie_booking_test`, không đụng CSDL thật):
+  ```
+  php tests/run_tests.php
+  ```
+- [docs/RTM.md](docs/RTM.md) — ma trận truy vết yêu cầu FR / BR / NFR ↔ ca kiểm thử, kết quả Đạt / Không đạt.
+- [docs/DEMO.md](docs/DEMO.md) — kịch bản demo 3 luồng bắt buộc (tạo phòng → phim → suất; đặt vé; 2 phiên cùng 1 ghế).
 
 ## Cấu trúc thư mục
 
 ```
-public/       Web root (Laragon docroot) — front controller, CSS, JS đã biên dịch, ảnh upload
-src/          Mã nguồn PHP: config, core (Router/Auth/...), controllers, models, views
-ts/           Mã nguồn TypeScript (sơ đồ ghế, biểu đồ doanh thu admin)
-database/     schema.sql — DDL + dữ liệu mẫu
+public/       Web root (Laragon docroot) — front controller, API JSON, CSS, JS đã biên dịch, ảnh upload
+src/          Mã nguồn PHP: config, core (Router/Auth/Csrf/helpers...), controllers, models, views
+ts/           Mã nguồn TypeScript (sơ đồ ghế + giữ ghế, biểu đồ thống kê admin)
+database/     schema.sql (DDL + dữ liệu mẫu), migrations/ cho CSDL cũ
+tests/        Kiểm thử tự động
+docs/         RTM, kịch bản demo
 ```
 
 ## Ghi chú thiết kế
 
-- Thanh toán là **giả lập**: vé được đánh dấu "đã thanh toán" ngay sau khi xác nhận đặt vé, không tích hợp cổng thanh toán thật.
-- Ghế được khóa **ngay khi bấm "Đặt vé"**: server kiểm tra ghế còn trống trong 1 transaction rồi ghi vào CSDL. Ràng buộc `UNIQUE(showtime_id, seat_id)` trên bảng `booking_seats` là lớp bảo vệ cuối cùng chống 2 người đặt trùng ghế cùng lúc.
+- Thanh toán là **giả lập**: đơn được xác nhận và ghi thanh toán "Thành công" ngay khi bấm Xác nhận; hủy đơn → "Đã hoàn".
+- **Giữ ghế 5 phút**: chọn ghế là giữ ghế cho session (bảng `seat_holds`), tối đa 8 ghế / phiên; đăng nhập giữa chừng vẫn giữ ghế.
+- **Chống bán trùng**: đặt vé chạy trong 1 transaction; ràng buộc `UNIQUE(showtime_id, seat_id)` trên bảng `showtime_seats` là chốt chặn cuối cùng khi 2 người xác nhận cùng lúc.
+- **Snapshot vé**: đơn và vé lưu tên phim, giờ chiếu, phòng, nhãn ghế, loại ghế, giá lúc đặt.
 - Không dùng framework PHP — Router/Controller/Model/Auth/Csrf là các lớp nhẹ tự viết trong `src/core/`.
