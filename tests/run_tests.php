@@ -672,7 +672,7 @@ check('16', '... rồi về đúng sơ đồ ghế của suất', str_ends_with(
 // ---------------------------------------------------------------- Ca 17: phim / phòng ngừng thì không bán
 section('Ca 17 - Phim Ngừng chiếu / phòng Ngừng hoạt động -> suất không bán được (UC01, UC11)');
 
-$st17 = makeShowtime($movieT13, 2, strtotime('+8 days 10:00'));
+$st17 = makeShowtime($movieT13, 2, strtotime('+6 days 10:00') /* trong 7 ngày tra cứu (UC02) */);
 $bookingsBefore = (int) scalar('SELECT COUNT(*) FROM bookings');
 db()->exec("UPDATE movies SET status = 'ended' WHERE id = $movieT13");
 $r = book($userA, $st17, [seatId(2, 'A1')]);
@@ -821,6 +821,22 @@ check('13', 'Doanh thu = 150.000đ theo giá trong vé', $card('Doanh thu') === 
 check('13', 'Có bảng theo phim và biểu đồ', str_contains($stats, 'Theo phim') && str_contains($stats, 'stats-chart'));
 $empty = $admin->get('/admin?from=2020-01-01&to=2020-01-02')['body'];
 check('13', 'Khoảng không có đơn -> "Không có dữ liệu trong khoảng đã chọn"', str_contains($empty, 'Không có dữ liệu trong khoảng đã chọn'));
+
+// ---------------------------------------------------------------- Ca 21: tra cứu suất
+section('Ca 21 - Tra cứu suất: số ghế trống, suất đóng bán hiện mờ, 7 ngày tới (FR02, UC02)');
+
+$st21 = makeShowtime($moviePG, $room20, time() + 10 * 60);
+$page = $userA->get("/showtimes?room_id=$room20&date=" . date('Y-m-d', time() + 10 * 60))['body'];
+check('21', 'Suất còn 10 phút: hiện "Đã đóng bán", không có link đặt vé', str_contains($page, 'is-closed')
+    && str_contains($page, 'Đã đóng bán') && !str_contains($page, "/showtimes/$st21/seats"));
+$st21b = makeShowtime($moviePG, $room20, strtotime('+2 days 09:00'));
+$page = $userA->get("/showtimes?room_id=$room20&date=" . date('Y-m-d', strtotime('+2 days')))['body'];
+$activeSeats = (int) scalar("SELECT COUNT(*) FROM seats WHERE room_id = ? AND status = 'active'", [$room20]);
+check('21', "Hiện số ghế còn trống của suất (Còn $activeSeats ghế)", str_contains($page, "Còn $activeSeats ghế trống"));
+$page = $userA->get('/showtimes?date=' . date('Y-m-d', strtotime('+9 days')))['body'];
+check('21', 'Chọn ngày ngoài 7 ngày tới -> báo lỗi', str_contains($page, 'Chỉ tra cứu được lịch chiếu trong 7 ngày tới'));
+$page = $userA->get("/showtimes?room_id=$room20&movie_id=" . movieId('Hành Tinh Cát Đỏ'))['body'];
+check('21', 'Không có suất -> "Chưa có lịch chiếu cho lựa chọn này"', str_contains($page, 'Chưa có lịch chiếu cho lựa chọn này'));
 
 // ---------------------------------------------------------------- Lỗi hệ thống
 section('Lỗi CSDL không lộ chi tiết SQL');

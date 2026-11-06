@@ -51,28 +51,31 @@ class Showtime extends Model
     /**
      * Tra cứu suất chiếu còn hoạt động theo phim / rạp / ngày (mỗi tham số optional).
      */
-    public static function search(?int $movieId, ?int $cinemaId, ?string $date): array
+    public const SEARCH_DAYS = 7;
+
+    /**
+     * Tra cứu suất chưa hủy, chưa bắt đầu, trong SEARCH_DAYS ngày tới (UC02). Kèm số ghế còn
+     * trống; suất đã đóng bán (< 15 phút) vẫn trả về để giao diện hiển thị mờ.
+     */
+    public static function search(?int $movieId, ?int $cinemaId, ?int $roomId, ?string $date): array
     {
-        $sql = 'SELECT st.*, m.title AS movie_title, c.name AS cinema_name, r.name AS room_name
+        $sql = 'SELECT st.*, m.title AS movie_title, m.duration_minutes, c.name AS cinema_name, r.name AS room_name,
+                       (SELECT COUNT(*) FROM seats s WHERE s.room_id = st.room_id AND s.status = "active")
+                     - (SELECT COUNT(*) FROM showtime_seats ss WHERE ss.showtime_id = st.id) AS seats_available
                 FROM showtimes st
                 INNER JOIN movies m ON m.id = st.movie_id
                 INNER JOIN rooms r ON r.id = st.room_id
                 INNER JOIN cinemas c ON c.id = r.cinema_id
                 WHERE st.status = "active" AND TIMESTAMP(st.show_date, st.start_time) > NOW()
+                  AND st.show_date < CURDATE() + INTERVAL ? DAY
                   AND m.status <> "ended" AND r.status = "active" AND c.status = "active"';
-        $params = [];
+        $params = [self::SEARCH_DAYS];
 
-        if ($movieId) {
-            $sql .= ' AND st.movie_id = ?';
-            $params[] = $movieId;
-        }
-        if ($cinemaId) {
-            $sql .= ' AND c.id = ?';
-            $params[] = $cinemaId;
-        }
-        if ($date) {
-            $sql .= ' AND st.show_date = ?';
-            $params[] = $date;
+        foreach (['st.movie_id' => $movieId, 'c.id' => $cinemaId, 'r.id' => $roomId, 'st.show_date' => $date] as $column => $value) {
+            if ($value) {
+                $sql .= " AND $column = ?";
+                $params[] = $value;
+            }
         }
 
         $sql .= ' ORDER BY st.show_date, st.start_time';

@@ -528,6 +528,10 @@ textarea.form-control { resize: vertical; min-height: 100px; }
 .showtime-item:hover { border-color: var(--primary); }
 .showtime-item .meta { color: var(--muted); font-size: 0.88rem; }
 .showtime-item .price { margin-right: 12px; color: var(--primary); font-weight: 700; }
+/* Suất đã đóng bán (còn < 15 phút): hiển thị mờ, không bấm được */
+.showtime-item.is-closed { opacity: 0.45; }
+.showtime-item.is-closed:hover { border-color: var(--border); }
+.showtime-item.is-closed .btn { cursor: not-allowed; pointer-events: none; }
 
 /* ---------- Seat map ---------- */
 .seat-map-wrap {

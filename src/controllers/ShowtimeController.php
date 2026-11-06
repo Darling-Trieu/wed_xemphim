@@ -4,25 +4,35 @@ require_once __DIR__ . '/../models/Showtime.php';
 require_once __DIR__ . '/../models/Movie.php';
 require_once __DIR__ . '/../models/Cinema.php';
 require_once __DIR__ . '/../models/SeatType.php';
+require_once __DIR__ . '/../models/Room.php';
 
 class ShowtimeController extends Controller
 {
     public function search(): void
     {
-        $movieId = $this->input('movie_id') ? (int) $this->input('movie_id') : null;
-        $cinemaId = $this->input('cinema_id') ? (int) $this->input('cinema_id') : null;
-        $date = $this->input('date') ?: null;
+        $movieId = (int) $this->input('movie_id', 0) ?: null;
+        $cinemaId = (int) $this->input('cinema_id', 0) ?: null;
+        $roomId = (int) $this->input('room_id', 0) ?: null;
+        $date = (string) $this->input('date', '') ?: null;
 
-        $showtimes = Showtime::search($movieId, $cinemaId, $date);
+        // Ngày (nếu chọn) phải nằm trong 7 ngày tới, tính cả hôm nay
+        $minDate = date('Y-m-d');
+        $maxDate = date('Y-m-d', strtotime('+' . (Showtime::SEARCH_DAYS - 1) . ' days'));
+        $error = null;
+        if ($date !== null && (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) || $date < $minDate || $date > $maxDate)) {
+            $error = 'Chỉ tra cứu được lịch chiếu trong ' . Showtime::SEARCH_DAYS . ' ngày tới.';
+        }
 
         $this->view('showtimes/search', [
             'pageTitle' => 'Lịch chiếu',
             'movies'    => Movie::allByStatus('now_showing'),
             'cinemas'   => Cinema::activeList(),
-            'showtimes' => $showtimes,
-            'movieId'   => $movieId,
-            'cinemaId'  => $cinemaId,
-            'date'      => $date,
+            'rooms'     => Room::activeWithCinema(),
+            'showtimes' => $error ? [] : Showtime::search($movieId, $cinemaId, $roomId, $date),
+            'error'     => $error,
+            'filters'   => ['movie_id' => $movieId, 'cinema_id' => $cinemaId, 'room_id' => $roomId, 'date' => $date],
+            'minDate'   => $minDate,
+            'maxDate'   => $maxDate,
         ]);
     }
 
