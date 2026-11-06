@@ -106,7 +106,6 @@ ts/                     Mã nguồn TypeScript: sơ đồ ghế + giữ ghế, b
 database/               schema.sql (tạo mới + dữ liệu mẫu), migrations/ (nâng cấp CSDL cũ)
 tests/                  Kiểm thử tự động
 docs/                   RTM, kịch bản demo
-cineq/                  Template giao diện CineQ (Figma) dùng làm tham khảo
 logs/                   app.log – chi tiết lỗi hệ thống (không đưa lên git)
 ```
 
