@@ -18,3 +18,7 @@ public/uploads/movies/*
 # Bản sao lưu CSDL (chứa email, mật khẩu đã băm) - không đưa lên git
 /database/backups/
 /public/*.sql
+
+# Template giao diện CineQ (chỉ để tham khảo trên máy, không đưa lên git)
+/cineq/
+/cineq.zip
