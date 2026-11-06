@@ -30,11 +30,20 @@ class Room extends Model
         return $row ?: null;
     }
 
-    public static function create(int $cinemaId, string $name): int
+    public const TYPES = ['standard' => 'Standard', 'deluxe' => 'Deluxe'];
+    public const STATUSES = ['active' => 'Hoạt động', 'inactive' => 'Ngừng hoạt động'];
+
+    public static function create(int $cinemaId, string $name, string $roomType = 'standard'): int
     {
-        $stmt = self::db()->prepare('INSERT INTO rooms (cinema_id, name, status) VALUES (?, ?, "active")');
-        $stmt->execute([$cinemaId, $name]);
+        $stmt = self::db()->prepare('INSERT INTO rooms (cinema_id, name, room_type, status) VALUES (?, ?, ?, "active")');
+        $stmt->execute([$cinemaId, $name, $roomType]);
         return (int) self::db()->lastInsertId();
+    }
+
+    public static function update(int $id, string $name, string $roomType, string $status): void
+    {
+        self::db()->prepare('UPDATE rooms SET name = ?, room_type = ?, status = ? WHERE id = ?')
+            ->execute([$name, $roomType, $status, $id]);
     }
 
     /** Phòng xếp suất chiếu được (UC12): phòng và rạp đều đang hoạt động. */

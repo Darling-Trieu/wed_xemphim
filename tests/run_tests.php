@@ -749,6 +749,60 @@ $r = $guest->post('/register', ['csrf_token' => $token, 'email' => 'thieu.ten@ex
 check('19', 'Đăng ký thiếu trường họ tên -> báo lỗi, không ra 500', $r['status'] === 200
     && str_contains($r['body'], 'Vui lòng nhập đầy đủ'), 'status ' . $r['status']);
 
+// ---------------------------------------------------------------- Ca 20: FR09
+section('Ca 20 - Loại ghế & phụ thu, sửa phòng, ghế Ngừng sử dụng / Lối đi (FR09, UC11)');
+
+$token = $admin->csrf('/admin/seat-types');
+$admin->post('/admin/seat-types', ['csrf_token' => $token, 'name' => 'Sweetbox', 'surcharge' => '30000']);
+$sweetbox = (int) scalar("SELECT id FROM seat_types WHERE name = 'Sweetbox'");
+check('20', 'Thêm loại ghế mới kèm phụ thu', $sweetbox > 0 && (int) scalar('SELECT surcharge FROM seat_types WHERE id = ?', [$sweetbox]) === 30000);
+$r = $admin->post('/admin/seat-types', ['csrf_token' => $token, 'name' => 'Sweetbox', 'surcharge' => '1000']);
+check('20', 'Tên loại ghế trùng -> báo lỗi', str_contains(flashError($admin->follow($r)['body']), 'đã tồn tại'));
+$r = $admin->post('/admin/seat-types', ['csrf_token' => $token, 'name' => 'Âm', 'surcharge' => '-5']);
+check('20', 'Phụ thu âm / không phải số -> báo lỗi', str_contains(flashError($admin->follow($r)['body']), 'Phụ thu phải là số nguyên')
+    && (int) scalar("SELECT COUNT(*) FROM seat_types WHERE name = 'Âm'") === 0);
+
+$vip = (int) scalar("SELECT id FROM seat_types WHERE name = 'VIP'");
+$st20 = makeShowtime($moviePG, 2, strtotime('+10 days 10:00'), 75000);
+$oldCode = bookingCodeFrom(book($userA, $st20, [seatId(2, 'C1')]));
+$admin->post("/admin/seat-types/$vip", ['csrf_token' => $token, 'name' => 'VIP', 'surcharge' => '20000']);
+$newCode = bookingCodeFrom(book($userB, $st20, [seatId(2, 'C2')]));
+check('20', 'Đổi phụ thu VIP: vé mới theo giá mới (95.000), vé cũ giữ giá cũ (85.000)',
+    (int) scalar('SELECT total_amount FROM bookings WHERE booking_code = ?', [$newCode]) === 95000
+    && (int) scalar('SELECT total_amount FROM bookings WHERE booking_code = ?', [$oldCode]) === 85000);
+$admin->post("/admin/seat-types/$vip", ['csrf_token' => $token, 'name' => 'VIP', 'surcharge' => '10000']);
+
+$r = $admin->post("/admin/seat-types/$vip/delete", ['csrf_token' => $token]);
+check('20', 'Loại ghế đang được dùng -> không xóa được', (int) scalar('SELECT COUNT(*) FROM seat_types WHERE id = ?', [$vip]) === 1
+    && str_contains(flashError($admin->follow($r)['body']), 'không xóa được'));
+$admin->post("/admin/seat-types/$sweetbox/delete", ['csrf_token' => $token]);
+check('20', 'Loại ghế chưa dùng -> xóa được', (int) scalar('SELECT COUNT(*) FROM seat_types WHERE id = ?', [$sweetbox]) === 0);
+
+$token = $admin->csrf('/admin/rooms/create');
+$admin->post('/admin/rooms', ['csrf_token' => $token, 'cinema_id' => 2, 'name' => 'Phòng Test FR09', 'room_type' => 'deluxe',
+    'rows' => 3, 'cols' => 4, 'seat_type_id' => 1]);
+$room20 = (int) scalar("SELECT id FROM rooms WHERE name = 'Phòng Test FR09'");
+check('20', 'Tạo phòng Deluxe 3x4 -> 12 ghế', $room20 > 0 && scalar('SELECT room_type FROM rooms WHERE id = ?', [$room20]) === 'deluxe'
+    && (int) scalar('SELECT COUNT(*) FROM seats WHERE room_id = ?', [$room20]) === 12);
+$token = $admin->csrf("/admin/rooms/$room20/edit");
+$admin->post("/admin/rooms/$room20", ['csrf_token' => $token, 'name' => 'Phòng Test Đã Sửa', 'room_type' => 'standard', 'status' => 'active']);
+check('20', 'Sửa tên + loại phòng', scalar('SELECT CONCAT(name, "|", room_type) FROM rooms WHERE id = ?', [$room20]) === 'Phòng Test Đã Sửa|standard');
+$r = $admin->post("/admin/rooms/$room20", ['csrf_token' => $token, 'name' => 'Phòng 1', 'room_type' => 'standard', 'status' => 'active']);
+check('20', 'Sửa trùng tên phòng khác trong cùng rạp -> báo lỗi', str_contains(flashError($admin->follow($r)['body']), 'đã tồn tại'));
+
+$token = $admin->csrf("/admin/rooms/$room20/seats");
+$a1 = seatId($room20, 'A1');
+$a2 = seatId($room20, 'A2');
+$admin->post("/admin/rooms/$room20/seats", ['csrf_token' => $token, 'seat' => [$a1 => 'inactive', $a2 => 'aisle']]);
+check('20', 'Đặt ghế Ngừng sử dụng / Lối đi', scalar('SELECT status FROM seats WHERE id = ?', [$a1]) === 'inactive'
+    && scalar('SELECT status FROM seats WHERE id = ?', [$a2]) === 'aisle');
+$st20b = makeShowtime($moviePG, $room20, strtotime('+10 days 14:00'));
+$r = holdSeat($userA, $st20b, $a1);
+check('20', 'Ghế Ngừng sử dụng không giữ / đặt được', !holdOk($r));
+$soldSeat = seatId(2, 'C1');
+$admin->post('/admin/rooms/2/seats', ['csrf_token' => $admin->csrf('/admin/rooms/2/seats'), 'seat' => [$soldSeat => 'aisle']]);
+check('20', 'Ghế đã có vé không đổi thành lối đi được', scalar('SELECT status FROM seats WHERE id = ?', [$soldSeat]) === 'active');
+
 // ---------------------------------------------------------------- Lỗi hệ thống
 section('Lỗi CSDL không lộ chi tiết SQL');
 db()->exec('RENAME TABLE showtime_seats TO showtime_seats_tmp');

@@ -57,6 +57,23 @@ abstract class Controller
         return is_string($value) ? trim($value) : $value;
     }
 
+    /** Chạy $work trong 1 transaction CSDL: commit nếu xong, rollback rồi ném lại nếu lỗi. */
+    protected function transaction(callable $work)
+    {
+        $db = Database::getConnection();
+        $db->beginTransaction();
+        try {
+            $result = $work();
+            $db->commit();
+            return $result;
+        } catch (Throwable $e) {
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+            throw $e;
+        }
+    }
+
     /** Chuỗi có độ dài (ký tự Unicode) trong khoảng [$min, $max], dùng trước khi ghi vào cột VARCHAR. */
     protected function validLength(?string $value, int $max, int $min = 1): bool
     {

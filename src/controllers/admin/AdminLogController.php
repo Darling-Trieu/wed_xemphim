@@ -6,14 +6,15 @@ require_once __DIR__ . '/../../models/AuditLog.php';
 class AdminLogController extends Controller
 {
     public const ENTITIES = [
-        'auth'     => 'Đăng nhập',
-        'movie'    => 'Phim',
-        'genre'    => 'Thể loại',
-        'room'     => 'Phòng chiếu',
-        'cinema'   => 'Rạp',
-        'showtime' => 'Suất chiếu',
-        'booking'  => 'Đơn vé',
-        'user'     => 'Tài khoản',
+        'auth'      => 'Đăng nhập',
+        'movie'     => 'Phim',
+        'genre'     => 'Thể loại',
+        'room'      => 'Phòng chiếu',
+        'seat_type' => 'Loại ghế',
+        'cinema'    => 'Rạp',
+        'showtime'  => 'Suất chiếu',
+        'booking'   => 'Đơn vé',
+        'user'      => 'Tài khoản',
     ];
 
     public function index(): void
