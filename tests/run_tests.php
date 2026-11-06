@@ -12,10 +12,25 @@
 const TEST_DB = 'movie_booking_test';
 const PORTS = [8099, 8100];
 
+if (getenv('DB_NAME') && getenv('DB_NAME') !== TEST_DB) {
+    throw new RuntimeException('Tests chỉ được dùng movie_booking_test.');
+}
+putenv('DB_NAME=' . TEST_DB);
+$authGroup = null;
+foreach ($argv as $arg) {
+    if (str_starts_with($arg, '--auth-only=')) {
+        $authGroup = substr($arg, strlen('--auth-only='));
+        if (!in_array($authGroup, ['register', 'profile', 'password'], true)) {
+            throw new RuntimeException('Nhóm auth không hợp lệ.');
+        }
+    }
+}
+
 date_default_timezone_set('Asia/Ho_Chi_Minh'); // cùng múi giờ với ứng dụng (src/config/config.php)
 
 $root = dirname(__DIR__);
-$mysqlBin = getenv('MYSQL_BIN') ?: 'C:/laragon/bin/mysql/mysql-8.0.30-winx64/bin/mysql.exe';
+$mysqlCandidates = glob('C:/laragon/bin/mysql/*/bin/mysql.exe');
+$mysqlBin = getenv('MYSQL_BIN') ?: (end($mysqlCandidates) ?: 'mysql');
 $sessionDir = sys_get_temp_dir() . '/movie_booking_test_sessions';
 
 // ---------------------------------------------------------------- Hạ tầng kiểm thử
@@ -165,7 +180,18 @@ function book(Client $c, int $showtimeId, array $seatIds, array $extra = ['age_c
     // Token lấy từ trang hồ sơ (cùng phiên): trang ghế của suất đã đóng bán không còn form,
     // ca 4 mô phỏng người dùng mở trang lúc còn bán rồi mới bấm xác nhận.
     $token = $c->csrf('/account');
-    return $c->post("/booking/$showtimeId", array_merge(['csrf_token' => $token, 'seat_ids' => implode(',', $seatIds)], $extra));
+    $data = array_merge(['csrf_token' => $token, 'seat_ids' => implode(',', $seatIds)], $extra);
+    $confirm = $c->post("/booking/$showtimeId/confirm", $data);
+    if ($confirm['status'] !== 200) {
+        return $confirm;
+    }
+    foreach ($seatIds as $seatId) {
+        $hold = $c->post('/api.php?action=hold_seat', ['showtime_id' => $showtimeId, 'seat_id' => $seatId]);
+        if (!(json_decode($hold['body'], true)['held'] ?? false)) {
+            throw new RuntimeException("Không giữ được ghế $seatId bằng session của client kiểm thử.");
+        }
+    }
+    return $c->post("/booking/$showtimeId", $data);
 }
 
 function bookingCodeFrom(array $response): ?string
@@ -175,6 +201,13 @@ function bookingCodeFrom(array $response): ?string
 
 // ---------------------------------------------------------------- Chuẩn bị CSDL + server
 
+foreach (PORTS as $port) {
+    $existing = @fsockopen('127.0.0.1', $port);
+    if ($existing) {
+        fclose($existing);
+        throw new RuntimeException("Cổng $port đang được dùng; không gửi test đến server không thuộc bộ kiểm thử.");
+    }
+}
 echo "Tạo CSDL " . TEST_DB . " từ database/schema.sql ...\n";
 $sqlFile = sys_get_temp_dir() . '/movie_booking_test_schema.sql';
 file_put_contents($sqlFile, "DROP DATABASE IF EXISTS " . TEST_DB . ";\n"
@@ -193,12 +226,14 @@ foreach (PORTS as $port) {
     $cmd = [PHP_BINARY, '-d', 'session.save_path=' . $sessionDir, '-S', "127.0.0.1:$port", '-t', $root . '/public'];
     $servers[] = proc_open($cmd, [0 => ['pipe', 'r'], 1 => ['file', 'NUL', 'w'], 2 => ['file', 'NUL', 'w']], $pipes, $root,
         array_merge(getenv(), ['DB_NAME' => TEST_DB]));
+    fclose($pipes[0]);
 }
 register_shutdown_function(static function () use (&$servers) {
     foreach ($servers as $proc) {
         $status = proc_get_status($proc);
-        // php -S trên Windows chạy dưới cmd: hủy cả cây tiến trình
-        exec('taskkill /F /T /PID ' . $status['pid'] . ' >NUL 2>&1');
+        if ($status['running']) {
+            proc_terminate($proc);
+        }
         proc_close($proc);
     }
 });
@@ -222,6 +257,37 @@ $moviePG = movieId('Shaun the Sheep: Quái Lạ Ghé Nhà');
 $movieT18 = movieId('Oán Linh Đòi Mạng');
 $movieT13 = movieId('Hành Tinh Cát Đỏ');
 
+if ($authGroup !== null) {
+    require __DIR__ . '/account_tests.php';
+    $passed = count(array_filter($results, fn ($r) => $r[2]));
+    printf("\nTỔNG: %d/%d kiểm tra đạt\n", $passed, count($results));
+    exit($passed === count($results) ? 0 : 1);
+}
+
+section('Quyền sở hữu ghế giữ tạm');
+$holdShowtime = makeShowtime($moviePG, 1, strtotime('+9 days 10:00'));
+$holdSeat = seatId(1, 'A1');
+$holdToken = $userA->csrf('/account');
+$holdData = ['csrf_token' => $holdToken, 'seat_ids' => (string) $holdSeat];
+$beforeHolds = (int) scalar('SELECT COUNT(*) FROM bookings');
+$r = $userA->post("/booking/$holdShowtime", $holdData);
+check('hold', 'Không giữ ghế: không được tạo đơn', $r['status'] === 302
+    && str_contains(flashError($userA->follow($r)['body']), 'hết thời gian giữ')
+    && (int) scalar('SELECT COUNT(*) FROM bookings') === $beforeHolds);
+$userB->post('/api.php?action=hold_seat', ['showtime_id' => $holdShowtime, 'seat_id' => $holdSeat]);
+$r = $userA->post("/booking/$holdShowtime", $holdData);
+check('hold', 'Hold của session khác: không được tạo đơn', $r['status'] === 302
+    && str_contains(flashError($userA->follow($r)['body']), 'hết thời gian giữ')
+    && (int) scalar('SELECT COUNT(*) FROM bookings') === $beforeHolds);
+$userB->post('/api.php?action=release_seat', ['showtime_id' => $holdShowtime, 'seat_id' => $holdSeat]);
+$userA->post('/api.php?action=hold_seat', ['showtime_id' => $holdShowtime, 'seat_id' => $holdSeat]);
+db()->prepare('UPDATE seat_holds SET expires_at=DATE_SUB(NOW(), INTERVAL 1 SECOND) WHERE showtime_id=?')->execute([$holdShowtime]);
+$r = $userA->post("/booking/$holdShowtime", $holdData);
+check('hold', 'Hold hết hạn: không được tạo đơn', $r['status'] === 302
+    && str_contains(flashError($userA->follow($r)['body']), 'hết thời gian giữ')
+    && (int) scalar('SELECT COUNT(*) FROM bookings') === $beforeHolds);
+check('hold', 'Giữ lại đúng session thì đặt được', bookingCodeFrom(book($userA, $holdShowtime, [$holdSeat])) !== null);
+
 // ---------------------------------------------------------------- Ca 1: đặt cùng ghế đồng thời
 section('Ca 1 - Hai phiên đặt cùng 1 ghế gần như đồng thời (BR01)');
 
@@ -229,6 +295,11 @@ $st1 = makeShowtime($moviePG, 1, strtotime('+2 days 10:00'));
 $seat = seatId(1, 'B5');
 $tokA = $userA->csrf("/showtimes/$st1/seats");
 $tokB = $userB->csrf("/showtimes/$st1/seats");
+$holdA = $userA->post('/api.php?action=hold_seat', ['showtime_id' => $st1, 'seat_id' => $seat]);
+$holdB = $userB->post('/api.php?action=hold_seat', ['showtime_id' => $st1, 'seat_id' => $seat]);
+check('1', 'Session A giữ ghế; session B không lấy được ghế đang giữ',
+    (json_decode($holdA['body'], true)['held'] ?? false) === true
+    && (json_decode($holdB['body'], true)['held'] ?? true) === false);
 $mh = curl_multi_init();
 $hA = $userA->handle('POST', "/booking/$st1", ['csrf_token' => $tokA, 'seat_ids' => (string) $seat]);
 $hB = $userB->handle('POST', "/booking/$st1", ['csrf_token' => $tokB, 'seat_ids' => (string) $seat]);
@@ -245,7 +316,7 @@ $successes = (int) (bookingCodeFrom($rA) !== null) + (int) (bookingCodeFrom($rB)
 $loser = bookingCodeFrom($rA) ? [$userB, $rB] : [$userA, $rA];
 $loserMsg = flashError($loser[0]->follow($loser[1])['body']);
 check('1', 'HTTP song song (2 server): đúng 1 đơn thành công', $successes === 1, "số đơn thành công = $successes");
-check('1', 'Phiên còn lại nhận "Ghế B5 đã có người đặt"', str_contains($loserMsg, 'Ghế B5 đã có người đặt'), "flash = '$loserMsg'");
+check('1', 'Phiên không sở hữu hold bị từ chối khi gửi đơn song song', str_contains($loserMsg, 'hết thời gian giữ'), "flash = '$loserMsg'");
 check('1', 'CSDL chỉ có 1 dòng ghế-theo-suất cho B5', (int) scalar('SELECT COUNT(*) FROM showtime_seats WHERE showtime_id = ? AND seat_id = ?', [$st1, $seat]) === 1);
 
 // 10 tiến trình cùng gọi Booking::create vào đúng 1 thời điểm -> ép xảy ra race ở UNIQUE
@@ -257,7 +328,7 @@ $procs = [];
 $workerPipes = [];
 for ($i = 0; $i < 10; $i++) {
     $procs[] = proc_open(
-        [PHP_BINARY, $root . '/tests/booking_worker.php', $customerIds[$i % count($customerIds)], $st1b, $seat, sprintf('%.4f', $startAt)],
+        [PHP_BINARY, '-d', 'session.save_path=' . $sessionDir, $root . '/tests/booking_worker.php', $customerIds[$i % count($customerIds)], $st1b, $seat, sprintf('%.4f', $startAt)],
         [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes2, $root, array_merge(getenv(), ['DB_NAME' => TEST_DB])
     );
     $workerPipes[] = $pipes2;
@@ -645,6 +716,7 @@ check('NFR', 'API trả "Lỗi hệ thống, vui lòng thử lại." và không 
     $api['status'] === 500 && str_contains($api['body'], 'Lỗi hệ thống') && !str_contains($api['body'], 'SQLSTATE'), $api['body']);
 
 // ---------------------------------------------------------------- Tổng kết
+require __DIR__ . '/account_tests.php';
 $passed = count(array_filter($results, fn ($r) => $r[2]));
 printf("\nTỔNG: %d/%d kiểm tra đạt\n", $passed, count($results));
 exit($passed === count($results) ? 0 : 1);

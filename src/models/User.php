@@ -32,7 +32,7 @@ class User extends Model
             'INSERT INTO users (full_name, email, password_hash, phone, role, status)
              VALUES (?, ?, ?, ?, "customer", "active")'
         );
-        $stmt->execute([$fullName, $email, password_hash($password, PASSWORD_BCRYPT), $phone]);
+        $stmt->execute([$fullName, $email, password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]), $phone]);
         return (int) self::db()->lastInsertId();
     }
 
@@ -40,6 +40,14 @@ class User extends Model
     {
         $stmt = self::db()->prepare('UPDATE users SET full_name = ?, phone = ? WHERE id = ?');
         $stmt->execute([$fullName, $phone, $id]);
+    }
+
+    public static function changePassword(int $id, string $currentHash, string $password): bool
+    {
+        $hash = password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]);
+        $stmt = self::db()->prepare('UPDATE users SET password_hash = ? WHERE id = ? AND password_hash = ?');
+        $stmt->execute([$hash, $id, $currentHash]);
+        return $stmt->rowCount() === 1;
     }
 
     /** Đăng nhập bằng email hoặc số điện thoại (UC05). */

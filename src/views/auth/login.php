@@ -78,7 +78,7 @@ $fromSeatMap = preg_match('#/(booking|showtimes)/\d+#', (string) ($_SESSION['red
             </div>
             <div class="auth-field<?= in_array('password', $invalid, true) ? ' is-invalid' : '' ?>">
                 <label for="password">Mật khẩu</label>
-                <p class="auth-field__hint" id="password-hint">Mật khẩu có ít nhất 6 ký tự.</p>
+                <p class="auth-field__hint" id="password-hint">Nhập mật khẩu của tài khoản.</p>
                 <input type="password" id="password" name="password" autocomplete="current-password" aria-describedby="password-hint">
                 <?php if (in_array('password', $invalid, true)): ?>
                     <p class="auth-field__error">Nhập mật khẩu tài khoản của bạn.</p>

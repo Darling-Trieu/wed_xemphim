@@ -16,35 +16,39 @@ class AuthController extends Controller
 
     public function register(): void
     {
+        if (Auth::check()) {
+            $this->redirect('/');
+            return;
+        }
         Csrf::verifyRequest();
 
         $fullName = (string) $this->input('full_name', '');
         $email = strtolower((string) $this->input('email'));
         $phone = (string) $this->input('phone', '');
-        $password = (string) $this->input('password');
-        $passwordConfirm = (string) $this->input('password_confirm');
+        $password = $this->passwordInput('password');
+        $passwordConfirm = $this->passwordInput('password_confirm');
 
         $errors = [];
-        if ($fullName === '' || $email === '' || $password === '') {
-            $errors[] = 'Vui lòng nhập đầy đủ thông tin bắt buộc.';
+        if (!$this->validLength($fullName, 100)) {
+            $errors['full_name'] = 'Vui lòng nhập đầy đủ họ tên, tối đa 100 ký tự.';
         }
         if (!filter_var($email, FILTER_VALIDATE_EMAIL) || mb_strlen($email) > 150) {
-            $errors[] = 'Email không hợp lệ.';
+            $errors['email'] = 'Email không hợp lệ.';
         }
-        if ($phone !== '' && !$this->validPhone($phone)) {
-            $errors[] = 'Số điện thoại phải gồm 10 chữ số, bắt đầu bằng 0.';
+        if (!$this->validPhone($phone)) {
+            $errors['phone'] = 'Số điện thoại phải gồm 10 chữ số, bắt đầu bằng 0.';
         }
-        if (strlen($password) < 6) {
-            $errors[] = 'Mật khẩu phải có ít nhất 6 ký tự.';
+        if (!$this->validPassword($password)) {
+            $errors['password'] = 'Mật khẩu phải có ít nhất 8 ký tự, có chữ và số, tối đa 72 byte và không chứa ký tự NUL.';
         }
         if ($password !== $passwordConfirm) {
-            $errors[] = 'Xác nhận mật khẩu không khớp.';
+            $errors['password_confirm'] = 'Xác nhận mật khẩu không khớp.';
         }
-        if (mb_strlen($fullName) > 100) {
-            $errors[] = 'Họ tên tối đa 100 ký tự.';
+        if (!isset($errors['email']) && User::findByEmail($email)) {
+            $errors['email'] = 'Email hoặc số điện thoại đã được sử dụng';
         }
-        if (empty($errors) && (User::findByEmail($email) || ($phone && User::findByPhone($phone)))) {
-            $errors[] = 'Email hoặc số điện thoại đã được sử dụng';
+        if (!isset($errors['phone']) && User::findByPhone($phone)) {
+            $errors['phone'] = 'Email hoặc số điện thoại đã được sử dụng';
         }
 
         if (!empty($errors)) {
@@ -84,7 +88,7 @@ class AuthController extends Controller
 
         // Ô "Email hoặc số điện thoại" (giữ tương thích tên trường cũ "email")
         $login = trim((string) ($this->input('login') ?? $this->input('email') ?? ''));
-        $password = (string) $this->input('password');
+        $password = $this->passwordInput('password');
 
         if ($login === '' || $password === '') {
             // Ô bỏ trống được tô đỏ kèm hướng dẫn (trạng thái "Nhập thiếu" trên Figma)
