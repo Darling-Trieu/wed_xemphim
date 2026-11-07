@@ -62,6 +62,10 @@ class BookingController extends Controller
         }
 
         $seatIds = Booking::normalizeSeatIds($this->input('seat_ids', ''));
+        if (empty($seatIds)) {
+            $this->backToSeatMap($showtime, 'Vui lòng chọn ít nhất 1 ghế.');
+            return;
+        }
         $ageConfirmed = $this->input('age_confirmed') === '1';
 
         try {
@@ -82,21 +86,38 @@ class BookingController extends Controller
             $this->backToSeatMap($showtime, $e->getMessage());
             return;
         }
+         catch (Throwable $e) {
+            error_log('Booking failed: ' . $e->getMessage());
+            $this->backToSeatMap($showtime, 'Có lỗi hệ thống, vui lòng thử lại.');
+            return;
+        }
+        try {
+            SeatHold::releaseSession((int) $showtime['id'], session_id());
+        } catch (Throwable $e) {
+            error_log('Release hold failed: ' . $e->getMessage());
+        }
 
-        $user = User::find(Auth::id());
-        $booking = Booking::findByCode($code);
-        $seats = $booking ? BookingSeat::allByBooking((int) $booking['id']) : [];
-        $emailSent = $user && $booking
-            ? Mailer::sendBookingConfirmation($user, $booking, $seats)
-            : false;
+        $emailSent = false;
+        $email = '';
+        try {
+            $user = User::find(Auth::id());
+            $booking = Booking::findByCode($code);
+            if ($user && $booking) {
+                $email = (string) $user['email'];
+                $seats = BookingSeat::allByBooking((int) $booking['id']);
+                $emailSent = Mailer::sendBookingConfirmation($user, $booking, $seats);
+            }
+        } catch (Throwable $e) {
+            error_log('Mail failed: ' . $e->getMessage());
+        }
+        
         $this->flash(
-            $emailSent ? 'success' : 'error',
+            'success',
             $emailSent
-                ? 'Vé xác nhận đã được gửi tới email ' . $user['email'] . '.'
-                : 'Đặt vé thành công nhưng chưa gửi được email xác nhận. Vui lòng kiểm tra cấu hình mail().'
+                ? 'Vé xác nhận đã được gửi tới email ' . $email . '.'
+                : 'Đặt vé thành công. Bạn có thể xem vé ở mục Vé của tôi.'
         );
-        SeatHold::releaseSession((int) $showtime['id'], session_id());
-
+        
         $this->redirect('/booking/success/' . $code, 303);
     }
 
