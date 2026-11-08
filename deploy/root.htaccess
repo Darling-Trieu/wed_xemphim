@@ -5,7 +5,7 @@ Options -Indexes
 RewriteEngine On
 
 # Chặn mã nguồn, cấu hình, log và file ẩn (.env, .git...)
-RewriteRule ^(src|logs|database|deploy|tests|docs|ts|node_modules)(/|$) - [F,L]
+RewriteRule ^(src|logs|database|deploy|deploy-data|tests|docs|ts|node_modules)(/|$) - [F,L]
 RewriteRule (^|/)\. - [F,L]
 
 # Mọi đường dẫn còn lại phục vụ từ public/ (URL không có chữ /public)
