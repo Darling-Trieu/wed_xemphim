@@ -101,7 +101,7 @@ class Booking extends Model
         try {
             // Khóa chia sẻ dòng suất chiếu: admin không hủy/sửa suất được giữa chừng,
             // các đơn khác của cùng suất vẫn chạy song song.
-            $db->prepare('SELECT id FROM showtimes WHERE id = ? FOR SHARE')->execute([$showtimeId]);
+            $db->prepare('SELECT id FROM showtimes WHERE id = ? LOCK IN SHARE MODE')->execute([$showtimeId]);
             $showtime = Showtime::find($showtimeId);
             if (!$showtime) {
                 throw new BookingException('Không tìm thấy suất chiếu.');
