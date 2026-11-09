@@ -265,6 +265,7 @@
     border-radius: 13px;
     padding: 30px 26px 24px;
     overflow: hidden;
+    container-type: inline-size; /* để cỡ chữ của .value co theo chiều rộng thẻ */
 }
 .stat-card::before {
     content: "";
@@ -276,7 +277,14 @@
     background: var(--a-stat-accent);
     border-radius: 3px;
 }
-.stat-card .value { font-size: 34px; line-height: 1.2; font-weight: 800; color: var(--a-stat); }
+/* Số tiền dài không được tràn khỏi thẻ: thu nhỏ chữ, số quá dài thì xuống dòng */
+.stat-card .value {
+    font-size: clamp(22px, 15cqw, 34px);
+    line-height: 1.2;
+    font-weight: 800;
+    color: var(--a-stat);
+    overflow-wrap: anywhere;
+}
 .stat-card .label { color: #999; font-size: 16px; margin-top: 12px; }
 
 .chart-card {
