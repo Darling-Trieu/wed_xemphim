@@ -345,7 +345,11 @@
 .seat-editor-swatch.type-vip { border-color: #f5b301; background: rgba(245,179,1,0.15); }
 .seat-editor-swatch.type-doi { border-color: #a855f7; background: rgba(168,85,247,0.15); }
 
-.log-data { margin: 0; max-width: 360px; white-space: pre-wrap; word-break: break-word; font-size: 0.78rem; color: var(--a-muted); }
+/* Nhật ký: cột Trước / Sau đủ rộng để không ngắt giữa chữ; chữ dài mới xuống dòng */
+.admin-body table.log-table td { height: auto; padding-top: 12px; padding-bottom: 12px; vertical-align: top; font-size: 14px; }
+.log-data { min-width: 240px; max-width: 420px; white-space: normal; overflow-wrap: anywhere; font-size: 13px; line-height: 1.5; color: var(--a-muted); }
+.log-key { color: var(--a-text); font-weight: 600; }
+.log-empty { color: var(--a-muted); }
 
 /* ---------- Responsive ---------- */
 @media (max-width: 960px) {
