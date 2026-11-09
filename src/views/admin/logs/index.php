@@ -1,10 +1,65 @@
 <?php
-$pretty = static function (?string $json): string {
-    if ($json === null) {
-        return '';
+/**
+ * @var array $logs
+ * @var array $entities
+ * @var string $entity
+ */
+$actionLabels = [
+    'login_success'   => 'Đăng nhập thành công',
+    'login_failed'    => 'Đăng nhập thất bại',
+    'create'          => 'Thêm mới',
+    'update'          => 'Cập nhật',
+    'update_seats'    => 'Sửa sơ đồ ghế',
+    'delete'          => 'Xóa',
+    'deactivate'      => 'Ngừng hoạt động',
+    'cancel'          => 'Hủy',
+    'lock'            => 'Khóa tài khoản',
+    'unlock'          => 'Mở khóa tài khoản',
+    'password_change' => 'Đổi mật khẩu',
+];
+$fieldLabels = [
+    'login'            => 'Tài khoản',
+    'reason'           => 'Lý do',
+    'status'           => 'Trạng thái',
+    'payment'          => 'Thanh toán',
+    'refund_amount'    => 'Hoàn tiền',
+    'name'             => 'Tên',
+    'title'            => 'Tên phim',
+    'description'      => 'Mô tả',
+    'duration_minutes' => 'Thời lượng (phút)',
+    'age_rating'       => 'Nhãn tuổi',
+    'release_date'     => 'Khởi chiếu',
+    'trailer_url'      => 'Trailer',
+    'poster_path'      => 'Poster',
+    'created_at'       => 'Ngày tạo',
+    'movie_id'         => 'Mã phim',
+    'room_id'          => 'Mã phòng',
+    'cinema_id'        => 'Mã rạp',
+    'room_type'        => 'Loại phòng',
+    'rows'             => 'Số hàng',
+    'cols'             => 'Số cột',
+    'seat_type_id'     => 'Mã loại ghế',
+    'surcharge'        => 'Phụ thu',
+    'show_date'        => 'Ngày chiếu',
+    'start_time'       => 'Giờ bắt đầu',
+    'end_time'         => 'Giờ kết thúc',
+    'base_price'       => 'Giá cơ bản',
+];
+
+// Dữ liệu trước / sau (JSON) -> danh sách "tên trường: giá trị" đã escape
+$renderData = static function (?string $json) use ($fieldLabels): string {
+    $data = $json === null ? null : json_decode($json, true);
+    if (!is_array($data) || $data === []) {
+        return '<span class="log-empty">—</span>';
     }
-    $data = json_decode($json, true);
-    return json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    $rows = '';
+    foreach ($data as $key => $value) {
+        $label = $fieldLabels[$key] ?? (is_int($key) ? 'Ghế #' . $key : $key);
+        $text = is_array($value) ? json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+            : ($value === null ? '—' : (string) $value);
+        $rows .= '<div><span class="log-key">' . htmlspecialchars((string) $label) . ':</span> ' . htmlspecialchars($text) . '</div>';
+    }
+    return '<div class="log-data">' . $rows . '</div>';
 };
 ?>
 <h1>Nhật ký hệ thống</h1>
@@ -21,17 +76,17 @@ $pretty = static function (?string $json): string {
 </form>
 
 <div class="table-responsive">
-<table class="data-table">
+<table class="data-table log-table">
     <thead><tr><th>Thời điểm</th><th>Người thực hiện</th><th>Hành động</th><th>Đối tượng</th><th>Trước</th><th>Sau</th><th>IP</th></tr></thead>
     <tbody>
         <?php foreach ($logs as $log): ?>
             <tr>
                 <td><?= htmlspecialchars(date('d/m/Y H:i:s', strtotime($log['created_at']))) ?></td>
                 <td><?= htmlspecialchars($log['user_email'] ?? '(khách)') ?></td>
-                <td><?= htmlspecialchars($log['action']) ?></td>
+                <td><?= htmlspecialchars($actionLabels[$log['action']] ?? $log['action']) ?></td>
                 <td><?= htmlspecialchars(($entities[$log['entity']] ?? $log['entity']) . ($log['entity_id'] !== null ? ' #' . $log['entity_id'] : '')) ?></td>
-                <td><pre class="log-data"><?= htmlspecialchars($pretty($log['before_data'])) ?></pre></td>
-                <td><pre class="log-data"><?= htmlspecialchars($pretty($log['after_data'])) ?></pre></td>
+                <td><?= $renderData($log['before_data']) ?></td>
+                <td><?= $renderData($log['after_data']) ?></td>
                 <td><?= htmlspecialchars($log['ip_address'] ?? '') ?></td>
             </tr>
         <?php endforeach; ?>

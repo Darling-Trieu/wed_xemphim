@@ -13,47 +13,61 @@ const TICK_COLOR = '#9ca0a8';
  * (cùng bộ lọc với bảng số liệu), data-kind = "line" | "bar".
  */
 document.addEventListener('DOMContentLoaded', () => {
-    if (typeof Chart === 'undefined') {
-        return;
-    }
     document.querySelectorAll<HTMLCanvasElement>('canvas.stats-chart').forEach((canvas) => {
-        let series: ChartSeries;
         try {
-            series = JSON.parse(canvas.dataset.series || '');
+            const series: ChartSeries = JSON.parse(canvas.dataset.series || '');
+            drawRevenueChart(canvas, canvas.dataset.kind === 'bar' ? 'bar' : 'line', series);
         } catch (e) {
-            return;
+            // Không để ô trống: báo rõ và chỉ sang bảng số liệu bên dưới
+            const note = document.createElement('p');
+            note.className = 'empty-note';
+            note.textContent = 'Không vẽ được biểu đồ, vui lòng xem bảng số liệu bên dưới.';
+            canvas.replaceWith(note);
         }
-        drawRevenueChart(canvas, canvas.dataset.kind === 'bar' ? 'bar' : 'line', series);
     });
 });
 
+function formatRevenue(value: number): string {
+    return Number(value).toLocaleString('vi-VN') + 'đ';
+}
+
 function drawRevenueChart(canvas: HTMLCanvasElement, kind: 'line' | 'bar', series: ChartSeries): void {
+    const horizontal = kind === 'bar'; // thanh ngang: tên phim dài vẫn đọc được
+    const valueAxis = {
+        beginAtZero: true,
+        ticks: { color: TICK_COLOR, callback: (value: number) => formatRevenue(value) },
+        grid: { color: GRID_COLOR },
+    };
+    const labelAxis = { ticks: { color: TICK_COLOR }, grid: { color: GRID_COLOR } };
+
     new Chart(canvas, {
         type: kind,
         data: {
             labels: series.labels,
             datasets: [
                 {
-                    label: 'Doanh thu (đ)',
+                    label: 'Doanh thu',
                     data: series.revenue,
                     borderColor: '#e50914',
-                    backgroundColor: kind === 'bar' ? 'rgba(229,9,20,0.6)' : 'rgba(229,9,20,0.1)',
+                    backgroundColor: horizontal ? 'rgba(229,9,20,0.6)' : 'rgba(229,9,20,0.1)',
                     tension: 0.3,
-                    fill: kind === 'line',
+                    fill: !horizontal,
                 },
             ],
         },
         options: {
+            indexAxis: horizontal ? 'y' : 'x',
             responsive: true,
-            plugins: { legend: { display: false } },
-            scales: {
-                x: { ticks: { color: TICK_COLOR }, grid: { color: GRID_COLOR } },
-                y: {
-                    beginAtZero: true,
-                    ticks: { color: TICK_COLOR, callback: (value: number) => value.toLocaleString('vi-VN') },
-                    grid: { color: GRID_COLOR },
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: (item: { raw: number }) => `Doanh thu: ${formatRevenue(item.raw)}`,
+                    },
                 },
             },
+            scales: horizontal ? { x: valueAxis, y: labelAxis } : { x: labelAxis, y: valueAxis },
         },
     });
 }

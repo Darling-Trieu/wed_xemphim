@@ -22,3 +22,7 @@ public/uploads/movies/*
 # Template giao diện CineQ (chỉ để tham khảo trên máy, không đưa lên git)
 /cineq/
 /cineq.zip
+
+# Cấu hình CSDL hosting (chứa mật khẩu) và gói deploy
+/src/config/database.local.php
+/deploy/dist/
