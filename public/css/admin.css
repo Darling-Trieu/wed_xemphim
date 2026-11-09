@@ -287,6 +287,7 @@
     margin-bottom: 24px;
 }
 .chart-card h3 { margin: 0 0 18px; font-size: 23px; font-weight: 700; color: #fff; }
+.chart-canvas { position: relative; width: 100%; }
 
 /* Lưới cố định: cột 1 là tên hàng, mỗi ghế nằm đúng cột theo số ghế, cột cuối chọn nhanh cả hàng */
 .seat-editor-grid {

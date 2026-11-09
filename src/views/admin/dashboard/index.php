@@ -59,11 +59,16 @@ $hasData = $summary && $summary['tickets'] > 0;
     <?php else: ?>
         <div class="chart-card">
             <h3>Doanh thu theo ngày</h3>
-            <canvas class="stats-chart" data-kind="line" data-series="<?= htmlspecialchars(json_encode($dayChart, JSON_UNESCAPED_UNICODE)) ?>" height="90"></canvas>
+            <div class="chart-canvas" style="height:280px;">
+                <canvas class="stats-chart" data-kind="line" data-series="<?= htmlspecialchars(json_encode($dayChart, JSON_UNESCAPED_UNICODE)) ?>"></canvas>
+            </div>
         </div>
         <div class="chart-card">
             <h3>Doanh thu theo phim</h3>
-            <canvas class="stats-chart" data-kind="bar" data-series="<?= htmlspecialchars(json_encode($movieChart, JSON_UNESCAPED_UNICODE)) ?>" height="90"></canvas>
+            <?php // Thanh ngang: mỗi phim một hàng nên chiều cao tăng theo số phim ?>
+            <div class="chart-canvas" style="height:<?= max(180, 44 * count($byMovie)) ?>px;">
+                <canvas class="stats-chart" data-kind="bar" data-series="<?= htmlspecialchars(json_encode($movieChart, JSON_UNESCAPED_UNICODE)) ?>"></canvas>
+            </div>
         </div>
 
         <h3>Theo phim</h3>
@@ -100,4 +105,4 @@ $hasData = $summary && $summary['tickets'] > 0;
     <?php endif; ?>
 <?php endif; ?>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<script src="<?= BASE_URL ?>/js/vendor/chart.umd.js"></script>
