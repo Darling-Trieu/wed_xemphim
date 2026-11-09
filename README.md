@@ -62,6 +62,8 @@ public/       Web root (Laragon docroot) — front controller, CSS, JS đã biê
 src/          Mã nguồn PHP: config, core (Router/Auth/...), controllers, models, views
 ts/           Mã nguồn TypeScript (sơ đồ ghế, biểu đồ doanh thu admin)
 database/     schema.sql — DDL + dữ liệu mẫu
+tests/        Kiểm thử tự động (php tests/run_tests.php)
+docs/         Tài liệu ngoài mã nguồn: sheet testcase, nhận diện thương hiệu, báo cáo review
 ```
 
 ## Ghi chú thiết kế
